@@ -28,5 +28,9 @@ si rilascia anche un icona per la toolbar
 il prodotto è rilasciato gratuitamente senza garanzie di alcuna sorta
 the software is free but use it at your own risk
 
-## to do
-I'd like your help to make it interactive (visualize the triangle while placing it on the drawing and rotate and orient it). I'm not ready for that.
+### to do
+I'd like your help to make it **interactive** (visualize the triangle while placing it on the drawing and rotate and orient it). I'm not ready for that.
+
+## acaddoc.lsp
+
+adding this line of toce to your acaddoc.lsp file will show the current _insunits_ in the taskbar (converted to a readable format)
