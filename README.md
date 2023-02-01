@@ -1,7 +1,8 @@
 # index
 
 ## survey
-an autolisp routine that draws a triangle given three sides - to help with survey routines in acad
+an autolisp routine that draws a triangle given three sides - to help with survey routines in acad.  
+Please help me to make it with ghost-elastic preview!
 
 ## acaddoc.lsp
 
