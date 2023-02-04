@@ -1,3 +1,5 @@
+;;; this is Dan E. Thomas' lisp ported to centimeters
+
 ;;; ****Stairs.lsp  Version 1.0
 ;;; ****(C) Copyright 1997 by <DETOUR>  Dan E. Thomas
 ;;;
