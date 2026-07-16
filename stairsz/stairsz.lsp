@@ -362,7 +362,120 @@
 
   (princ)
 )
+;------------------------------------------------------------
+; Temporary test command
+;------------------------------------------------------------
 
+(defun c:STAIR
+  (/ mode dir runDir nx ny geom)
+
+  ;; Direction
+
+  (initget "Left Right")
+
+  (setq dir
+    (getkword
+      "\nDirection [Left/Right] <Right>: "
+    )
+  )
+
+  (if (null dir)
+    (setq dir "Right")
+  )
+
+  (setq runDir
+    (if (= (strcase dir) "LEFT")
+      -1.0
+       1.0
+    )
+  )
+
+  ;; Nosing
+
+  (initget "None Square Round")
+
+  (setq mode
+    (getkword
+      "\nNosing [None/Square/Round] <Square>: "
+    )
+  )
+
+  (if (null mode)
+    (setq mode "Square")
+  )
+
+  (setq mode (strcase mode))
+
+  ;; defaults
+
+  (setq nx 3.0)
+  (setq ny 2.0)
+
+  ;; Square parameters
+
+  (if (= mode "SQUARE")
+
+    (progn
+
+      (setq nx
+        (cond
+          ((getreal "\nNose X <3>: "))
+          (3.0)
+        )
+      )
+
+      (setq ny
+        (cond
+          ((getreal "\nNose Y <2>: "))
+          (2.0)
+        )
+      )
+    )
+  )
+
+  ;; Round parameters
+
+  (if (= mode "ROUND")
+
+    (setq ny
+      (cond
+        ((getreal "\nDiameter <3>: "))
+        (3.0)
+      )
+    )
+  )
+
+  ;; Update globals
+
+  (setq *stair-nosing-type* mode)
+  (setq *stair-nosing-x* nx)
+  (setq *stair-nosing-y* ny)
+
+  ;; Draw preview geometry
+
+  (stair:update-preview
+
+    '(0.0 0.0 0.0)
+
+    5          ; risers
+    17.0       ; rise
+    30.0       ; tread
+
+    runDir
+  )
+
+  (prompt
+    (strcat
+      "\nTest stair created. Nosing="
+      mode
+    )
+  )
+
+  (princ)
+
+
+  (princ)
+)
 (princ
  "\nSTAIR 042B REBUILD loaded - Part 1"
 )
