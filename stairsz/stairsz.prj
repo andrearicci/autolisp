@@ -1,0 +1,16 @@
+;;; VLisp project file [V2.0] stairsz saved to:[d:\andrea.ricci\OneDrive - ARTELIA\Documenti\-TOOLS\MegaTools\ACADtools\_apps\_GIT\stairsz] at:[7/16/2026]
+(VLISP-PROJECT-LIST 
+  :NAME
+  stairsz
+  :OWN-LIST
+  ("stairsz")
+  :FAS-DIRECTORY
+  nil
+  :TMP-DIRECTORY
+  nil
+  :PROJECT-KEYS
+  (:BUILD (:standard))
+  :CONTEXT-ID
+  :AUTOLISP
+)
+;;; EOF

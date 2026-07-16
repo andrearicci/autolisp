@@ -1,7 +1,7 @@
 (vl-load-com)
 
 ;------------------------------------------------------------
-; STAIR 042B Part 4 work
+; STAIR 042B Part 4.1 - geometry completion fix
 ;
 ; Stair section generator
 ;
@@ -358,10 +358,37 @@
           nosingY
           / pts x y)
 
-  (setq pts '())
-  (setq x 0.0)
-  (setq y 0.0)
+(setq pts
 
+  (list
+
+    (list
+
+      (list
+        0.0
+        0.0
+        0.0
+      )
+
+      0.0
+    )
+  )
+)
+
+(setq x 0.0)
+(setq y 0.0)
+;;;;;;;;;;;;;;;;;;;;;;;;;;;; debug ;;;;;;;;;;;;
+  (prompt
+  (strcat
+    "\nRISERS="
+    (itoa risers)
+    " RISE="
+    (stair:f2 rise)
+    " TREAD="
+    (stair:f2 tread)
+  )
+)
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
   (repeat (1- risers)
 
     (setq pts
@@ -402,8 +429,45 @@
     (setq x (+ x (* runDir tread)))
     (setq y (+ y rise))
   )
+ (foreach v pts
+
+    (prompt
+
+      (strcat
+
+        "\nX="
+        (rtos (car (car v)) 2 3)
+
+        " Y="
+        (rtos (cadr (car v)) 2 3)
+      )
+    )
+  )
+
+    (setq pts
+
+    (append
+
+      pts
+
+      (list
+
+        (list
+
+          (list
+            x
+            (+ y rise)
+            0.0
+          )
+
+          0.0
+        )
+      )
+    )
+  )
 
   pts
+
 )
 
 ;------------------------------------------------------------
@@ -617,10 +681,6 @@
 )
 
 ;------------------------------------------------------------
-; STAIR (geometry test)
-;------------------------------------------------------------
-
-;------------------------------------------------------------
 ; Stair helpers
 ;------------------------------------------------------------
 
@@ -827,6 +887,12 @@
 
   (princ)
 )
+;;;;;;;;;;;;;;;;;;;;;; debug
 
-(princ "\nSTAIR 042B REBUILD loaded - Part 4")
+;------------------------------------------------------------
+; STAIR (geometry test)
+;------------------------------------------------------------
+ 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+(princ "\nSTAIR 042B Part 4.1 - geometry completion fix")
 (princ)

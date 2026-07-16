@@ -4,5 +4,8 @@
 			"path": "."
 		}
 	],
-	"settings": {}
+	"settings": {
+		"autolispext.debug.LaunchProgram": "C:\\Program Files\\Autodesk\\AutoCAD 2026\\acad.exe",
+		"autolispext.debug.AttachProcess": "acad"
+	}
 }
