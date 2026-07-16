@@ -1,0 +1,55 @@
+# ==========================================
+# AutoCAD Backup Files
+# ==========================================
+# File di backup creati automaticamente da AutoCAD (.bak)
+*.bak
+
+# File di backup temporanei (.~)
+*.~*
+
+# File di salvataggio automatico di AutoCAD (.sv$)
+*.sv$
+
+# ==========================================
+# File di Sistema Windows
+# ==========================================
+# Icone di anteprima di Windows
+Thumbs.db
+ehthumbs.db
+
+# Cartella nascosta di sistema (se presente)
+Desktop.ini
+
+# ==========================================
+# Editor di Testo / IDE (Opzionale)
+# ==========================================
+# Se usi VS Code, puoi ignorare le impostazioni specifiche della macchina
+.vscode/
+
+# Se usi Notepad++ o altri editor, ignora i file di sessione
+*.session
+*.tmp
+
+# ==========================================
+# File di Log (se generati dai tuoi script)
+# ==========================================
+# Ignora eventuali file di log generati dalle tue routine LISP
+*.log
+logs/
+
+# ==========================================
+# File Compilati (se usi VLX)
+# ==========================================
+# Se compili in .vlx o .fas, puoi scegliere se versionarli o generarli al volo.
+# Di solito è meglio non versionarli, ma tenerli in una cartella "build".
+# Se li vuoi ignorare:
+*.vlx
+*.fas
+
+# ==========================================
+# File di Configurazione Locale (Opzionale)
+# ==========================================
+# Se hai file di configurazione che variano da PC a PC (es. percorsi assoluti)
+local-settings.json
+config-local.lsp
+
