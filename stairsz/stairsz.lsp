@@ -1,7 +1,7 @@
 (vl-load-com)
 
 ;------------------------------------------------------------
-; STAIR 042B REBUILD - PART 2
+; STAIR 042B Part 4 work
 ;
 ; Stair section generator
 ;
@@ -10,8 +10,10 @@
 ; License:
 ; https://creativecommons.org/licenses/by-nc-sa/4.0/
 ;
-; Command:
+; Commands:
 ; STAIR
+; STAIRINFO
+; STAIRCALC
 ;------------------------------------------------------------
 
 ;------------------------------------------------------------
@@ -19,14 +21,12 @@
 ;------------------------------------------------------------
 
 (setq *stair-doc* nil)
-(setq *stair-temp* nil)
+(setq *stair-preview* nil)
 
 (setq *stair-mode* "ERGONOMIC")
 (setq *stair-fixed-tread* 30.0)
 
 (setq *stair-nosing-type* "NONE")
-(setq *stair-nosing-x* 2.0)
-(setq *stair-nosing-y* 2.0)
 
 ;------------------------------------------------------------
 ; Helpers
@@ -38,13 +38,127 @@
 
 (defun stair:sign (x)
   (if (>= x 0.0)
-    1.0
-    -1.0
+      1.0
+      -1.0
   )
 )
 
 (defun stair:round-int (x)
   (fix (+ x 0.5))
+)
+
+;------------------------------------------------------------
+; Unit conversion
+;------------------------------------------------------------
+
+(defun stair:cm->units (v / u)
+
+  (setq u (getvar "INSUNITS"))
+
+  (* v
+
+     (cond
+
+       ((= u 0) 1.0)
+       ((= u 4) 10.0)
+       ((= u 5) 1.0)
+       ((= u 6) 0.01)
+       ((= u 1) 0.3937007874)
+       ((= u 2) 0.03280839895)
+
+       (T 1.0)
+     )
+  )
+)
+
+(defun stair:ergonomic-min ()
+  (stair:cm->units 63.0)
+)
+
+(defun stair:ergonomic-max ()
+  (stair:cm->units 64.0)
+)
+
+(defun stair:ideal-riser ()
+  (stair:cm->units 16.5)
+)
+
+(defun stair:default-square-x ()
+  (stair:cm->units 2.0)
+)
+
+(defun stair:default-square-y ()
+  (stair:cm->units 2.0)
+)
+
+(defun stair:default-round-dia ()
+  (stair:cm->units 2.0)
+)
+
+(setq *stair-nosing-x*
+      (stair:default-square-x))
+
+(setq *stair-nosing-y*
+      (stair:default-square-y))
+
+;------------------------------------------------------------
+; Ergonomic helpers
+;------------------------------------------------------------
+
+(defun stair:get-height
+  (bp ep)
+
+  ;; Height is always Delta Y in UCS
+
+  (abs
+    (- (cadr ep)
+       (cadr bp)
+    )
+  )
+)
+
+(defun stair:propose-risers
+  (height)
+
+  (max
+
+    2
+
+    (stair:round-int
+
+      (/ height
+         (stair:ideal-riser)
+      )
+    )
+  )
+)
+
+(defun stair:ergonomic-tread
+  (rise)
+
+  (-
+
+    (stair:ergonomic-min)
+
+    (* 2.0 rise)
+  )
+)
+
+(defun stair:ergonomic-ok-p
+  (rise tread)
+
+  (and
+
+    (>=
+      (+ (* 2.0 rise) tread)
+      (stair:ergonomic-min)
+    )
+
+    (<=
+      (+ (* 2.0 rise) tread)
+      (stair:ergonomic-max)
+    )
+  )
 )
 
 ;------------------------------------------------------------
@@ -105,18 +219,21 @@
 (defun stair:delete-preview (/)
 
   (if
+
     (and
-      *stair-temp*
-      (= (type *stair-temp*) 'VLA-OBJECT)
+      *stair-preview*
+      (= (type *stair-preview*) 'VLA-OBJECT)
     )
 
     (vl-catch-all-apply
+
       'vla-delete
-      (list *stair-temp*)
+
+      (list *stair-preview*)
     )
   )
 
-  (setq *stair-temp* nil)
+  (setq *stair-preview* nil)
 
   (princ)
 )
@@ -194,7 +311,7 @@
   (setq bulge
     (if (> runDir 0.0)
       -1.0
-      1.0
+       1.0
     )
   )
 
@@ -255,35 +372,27 @@
         (cond
 
           ((= nosingType "SQUARE")
+
             (stair:step-square
-              x
-              y
-              tread
-              rise
-              nosingX
-              nosingY
+              x y tread rise
+              nosingX nosingY
               runDir
             )
           )
 
           ((= nosingType "ROUND")
+
             (stair:step-round
-              x
-              y
-              tread
-              rise
+              x y tread rise
               nosingY
               runDir
             )
           )
 
           (T
+
             (stair:step-none
-              x
-              y
-              tread
-              rise
-              runDir
+              x y tread rise runDir
             )
           )
         )
@@ -305,11 +414,15 @@
   (vertices / dxf item pt bulge en)
 
   (setq dxf
+
     (list
+
       '(0 . "LWPOLYLINE")
       '(100 . "AcDbEntity")
       '(100 . "AcDbPolyline")
+
       (cons 90 (length vertices))
+
       '(70 . 0)
     )
   )
@@ -322,6 +435,7 @@
     (setq dxf
 
       (append
+
         dxf
 
         (list
@@ -377,7 +491,6 @@
          (list
 
            (list
-
              (+ (car basePt)
                 (car (car v)))
 
@@ -395,7 +508,7 @@
     )
   )
 
-  (setq *stair-temp*
+  (setq *stair-preview*
     (stair:create-polyline geom)
   )
 
@@ -403,115 +516,317 @@
 )
 
 ;------------------------------------------------------------
-; Test command
+; STAIRINFO
 ;------------------------------------------------------------
 
-(defun c:STAIR
-  (/ dir runDir mode nx ny clampData)
-
-  (initget "Left Right")
-
-  (setq dir
-    (getkword
-      "\nDirection [Left/Right] <Right>: "
-    )
-  )
-
-  (if (null dir)
-    (setq dir "Right")
-  )
-
-  (setq runDir
-    (if (= (strcase dir) "LEFT")
-      -1.0
-       1.0
-    )
-  )
-
-  (initget "None Square Round")
-
-  (setq mode
-    (getkword
-      "\nNosing [None/Square/Round] <Square>: "
-    )
-  )
-
-  (if (null mode)
-    (setq mode "Square")
-  )
-
-  (setq mode (strcase mode))
-
-  (setq nx 3.0)
-  (setq ny 2.0)
-
-  (cond
-
-    ((= mode "SQUARE")
-
-      (setq nx
-        (cond
-          ((getreal "\nNose X <3>: "))
-          (3.0)
-        )
-      )
-
-      (setq ny
-        (cond
-          ((getreal "\nNose Y <2>: "))
-          (2.0)
-        )
-      )
-    )
-
-    ((= mode "ROUND")
-
-      (setq ny
-        (cond
-          ((getreal "\nDiameter <3>: "))
-          (3.0)
-        )
-      )
-    )
-  )
-
-  (setq clampData
-    (stair:clamp-nosing
-      17.0
-      30.0
-      mode
-      nx
-      ny
-    )
-  )
-
-  (setq nx (car clampData))
-  (setq ny (cadr clampData))
-
-  (setq *stair-nosing-type* mode)
-  (setq *stair-nosing-x* nx)
-  (setq *stair-nosing-y* ny)
-
-  (stair:update-preview
-
-    '(0.0 0.0 0.0)
-
-    5
-    17.0
-    30.0
-
-    runDir
-  )
+(defun c:STAIRINFO (/)
 
   (prompt
+
     (strcat
-      "\nTest stair created. Nosing="
-      mode
+
+      "\nINSUNITS = "
+      (itoa (getvar "INSUNITS"))
+
+      "\nIdeal riser = "
+      (stair:f2 (stair:ideal-riser))
+
+      "\nErgonomic minimum = "
+      (stair:f2 (stair:ergonomic-min))
+
+      "\nErgonomic maximum = "
+      (stair:f2 (stair:ergonomic-max))
     )
   )
 
   (princ)
 )
 
-(princ "\nSTAIR 042B REBUILD loaded - Part 2")
+;------------------------------------------------------------
+; STAIRCALC
+;------------------------------------------------------------
+
+(defun c:STAIRCALC
+  (/ bp ep height risers rise tread)
+
+  (setq bp
+    (getpoint "\nBase point: ")
+  )
+
+  (if bp
+
+    (progn
+
+      (setq ep
+        (getpoint bp "\nArrival point: ")
+      )
+
+      (if ep
+
+        (progn
+
+          (setq height
+            (stair:get-height bp ep)
+          )
+
+          (setq risers
+            (stair:propose-risers height)
+          )
+
+          (setq rise
+            (/ height risers)
+          )
+
+          (setq tread
+            (stair:ergonomic-tread rise)
+          )
+
+          (prompt
+
+            (strcat
+
+              "\nHeight = "
+              (stair:f2 height)
+
+              "\nIdeal riser = "
+              (stair:f2 (stair:ideal-riser))
+
+              "\nRisers = "
+              (itoa risers)
+
+              "\nRise = "
+              (stair:f2 rise)
+
+              "\nTread = "
+              (stair:f2 tread)
+
+              "\n2R+T = "
+
+              (stair:f2
+                (+ (* 2.0 rise)
+                   tread)
+              )
+            )
+          )
+        )
+      )
+    )
+  )
+
+  (princ)
+)
+
+;------------------------------------------------------------
+; STAIR (geometry test)
+;------------------------------------------------------------
+
+;------------------------------------------------------------
+; Stair helpers
+;------------------------------------------------------------
+
+(defun stair:get-rundir
+  (bp ep)
+
+  ;; Left if arrival X < base X
+  ;; Right otherwise (including same X)
+
+  (if (< (car ep)
+         (car bp))
+    -1.0
+     1.0
+  )
+)
+
+(defun stair:tread-count
+  (risers)
+
+  (max 0 (1- risers))
+)
+
+(defun stair:total-run
+  (risers tread)
+
+  (* (stair:tread-count risers)
+     tread)
+)
+
+;------------------------------------------------------------
+; Preview report
+;------------------------------------------------------------
+
+(defun stair:preview-report
+  (height
+   risers
+   rise
+   tread)
+
+  (prompt
+
+    (strcat
+
+      "\nPreview -> "
+
+      (itoa risers)
+      " risers of "
+      (stair:f2 rise)
+
+      " | "
+
+      (itoa
+        (stair:tread-count risers)
+      )
+
+      " treads of "
+      (stair:f2 tread)
+
+      " | Height "
+      (stair:f2 height)
+
+      " | Run "
+      (stair:f2
+        (stair:total-run
+          risers
+          tread
+        )
+      )
+
+      " | 2R+T "
+      (stair:f2
+        (+ (* 2.0 rise)
+           tread)
+      )
+
+      " | Mode "
+      *stair-mode*
+
+      " | Nosing "
+      *stair-nosing-type*
+    )
+  )
+
+  (princ)
+)
+
+;------------------------------------------------------------
+; STAIR
+; 042B PART 4
+;------------------------------------------------------------
+
+(defun c:STAIR
+  (/ bp
+     ep
+
+     runDir
+
+     height
+
+     risers
+     rise
+     tread)
+
+  (setq bp
+    (getpoint
+      "\nBase point: "
+    )
+  )
+
+  (if bp
+
+    (progn
+
+      (setq ep
+
+        (getpoint
+
+          bp
+
+          "\nArrival point: "
+        )
+      )
+
+      (if ep
+
+        (progn
+
+          ;; Determine direction
+
+          (setq runDir
+            (stair:get-rundir
+              bp
+              ep
+            )
+          )
+
+          ;; Stair height
+
+          (setq height
+
+            (stair:get-height
+              bp
+              ep
+            )
+          )
+
+          ;; Proposed risers
+
+          (setq risers
+
+            (stair:propose-risers
+              height
+            )
+          )
+
+          ;; Resulting rise
+
+          (setq rise
+
+            (/ height
+               risers)
+          )
+
+          ;; Ergonomic tread
+
+          (setq tread
+
+            (stair:ergonomic-tread
+              rise
+            )
+          )
+
+          ;; Preview
+
+          (stair:update-preview
+
+            bp
+
+            risers
+
+            rise
+
+            tread
+
+            runDir
+          )
+
+          ;; Preview report
+
+          (stair:preview-report
+
+            height
+
+            risers
+
+            rise
+
+            tread
+          )
+        )
+      )
+    )
+  )
+
+  (princ)
+)
+
+(princ "\nSTAIR 042B REBUILD loaded - Part 4")
 (princ)
