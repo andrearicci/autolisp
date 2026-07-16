@@ -1,13 +1,13 @@
 (vl-load-com)
 
 ;------------------------------------------------------------
-; STAIR 042B REBUILD
+; STAIR 042B REBUILD - PART 2
 ;
 ; Stair section generator
 ;
 ; (c) 2026 Andrea Ricci (with AI help)
 ;
-; CC BY-NC-SA 4.0
+; License:
 ; https://creativecommons.org/licenses/by-nc-sa/4.0/
 ;
 ; Command:
@@ -39,7 +39,7 @@
 (defun stair:sign (x)
   (if (>= x 0.0)
     1.0
-   -1.0
+    -1.0
   )
 )
 
@@ -48,10 +48,61 @@
 )
 
 ;------------------------------------------------------------
+; Nosing clamp
+;------------------------------------------------------------
+
+(defun stair:clamp-nosing
+  (rise tread nosingType nx ny / maxX maxY changed)
+
+  (setq changed nil)
+
+  (cond
+
+    ((= nosingType "SQUARE")
+
+      (setq maxX (/ tread 2.0))
+      (setq maxY (/ rise 2.0))
+
+      (if (> nx maxX)
+        (progn
+          (setq nx maxX)
+          (setq changed T)
+        )
+      )
+
+      (if (> ny maxY)
+        (progn
+          (setq ny maxY)
+          (setq changed T)
+        )
+      )
+    )
+
+    ((= nosingType "ROUND")
+
+      (setq maxY (/ rise 2.0))
+
+      (if (> ny maxY)
+        (progn
+          (setq ny maxY)
+          (setq changed T)
+        )
+      )
+    )
+  )
+
+  (if changed
+    (prompt "\nnosing dimensions out of range")
+  )
+
+  (list nx ny)
+)
+
+;------------------------------------------------------------
 ; Preview helpers
 ;------------------------------------------------------------
 
-(defun stair:delete-preview ( / )
+(defun stair:delete-preview (/)
 
   (if
     (and
@@ -143,7 +194,7 @@
   (setq bulge
     (if (> runDir 0.0)
       -1.0
-       1.0
+      1.0
     )
   )
 
@@ -191,7 +242,6 @@
           / pts x y)
 
   (setq pts '())
-
   (setq x 0.0)
   (setq y 0.0)
 
@@ -200,13 +250,11 @@
     (setq pts
 
       (append
-
         pts
 
         (cond
 
           ((= nosingType "SQUARE")
-
             (stair:step-square
               x
               y
@@ -219,7 +267,6 @@
           )
 
           ((= nosingType "ROUND")
-
             (stair:step-round
               x
               y
@@ -231,7 +278,6 @@
           )
 
           (T
-
             (stair:step-none
               x
               y
@@ -259,15 +305,11 @@
   (vertices / dxf item pt bulge en)
 
   (setq dxf
-
     (list
-
       '(0 . "LWPOLYLINE")
       '(100 . "AcDbEntity")
       '(100 . "AcDbPolyline")
-
       (cons 90 (length vertices))
-
       '(70 . 0)
     )
   )
@@ -280,7 +322,6 @@
     (setq dxf
 
       (append
-
         dxf
 
         (list
@@ -291,9 +332,7 @@
     )
   )
 
-  (setq en
-    (entmakex dxf)
-  )
+  (setq en (entmakex dxf))
 
   (if en
     (vlax-ename->vla-object en)
@@ -301,7 +340,7 @@
 )
 
 ;------------------------------------------------------------
-; Preview draw
+; Preview creation
 ;------------------------------------------------------------
 
 (defun stair:update-preview
@@ -362,14 +401,13 @@
 
   (princ)
 )
+
 ;------------------------------------------------------------
-; Temporary test command
+; Test command
 ;------------------------------------------------------------
 
 (defun c:STAIR
-  (/ mode dir runDir nx ny geom)
-
-  ;; Direction
+  (/ dir runDir mode nx ny clampData)
 
   (initget "Left Right")
 
@@ -390,8 +428,6 @@
     )
   )
 
-  ;; Nosing
-
   (initget "None Square Round")
 
   (setq mode
@@ -406,16 +442,12 @@
 
   (setq mode (strcase mode))
 
-  ;; defaults
-
   (setq nx 3.0)
   (setq ny 2.0)
 
-  ;; Square parameters
+  (cond
 
-  (if (= mode "SQUARE")
-
-    (progn
+    ((= mode "SQUARE")
 
       (setq nx
         (cond
@@ -431,35 +463,42 @@
         )
       )
     )
-  )
 
-  ;; Round parameters
+    ((= mode "ROUND")
 
-  (if (= mode "ROUND")
-
-    (setq ny
-      (cond
-        ((getreal "\nDiameter <3>: "))
-        (3.0)
+      (setq ny
+        (cond
+          ((getreal "\nDiameter <3>: "))
+          (3.0)
+        )
       )
     )
   )
 
-  ;; Update globals
+  (setq clampData
+    (stair:clamp-nosing
+      17.0
+      30.0
+      mode
+      nx
+      ny
+    )
+  )
+
+  (setq nx (car clampData))
+  (setq ny (cadr clampData))
 
   (setq *stair-nosing-type* mode)
   (setq *stair-nosing-x* nx)
   (setq *stair-nosing-y* ny)
 
-  ;; Draw preview geometry
-
   (stair:update-preview
 
     '(0.0 0.0 0.0)
 
-    5          ; risers
-    17.0       ; rise
-    30.0       ; tread
+    5
+    17.0
+    30.0
 
     runDir
   )
@@ -472,12 +511,7 @@
   )
 
   (princ)
-
-
-  (princ)
-)
-(princ
- "\nSTAIR 042B REBUILD loaded - Part 1"
 )
 
+(princ "\nSTAIR 042B REBUILD loaded - Part 2")
 (princ)
