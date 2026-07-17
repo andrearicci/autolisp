@@ -6,14 +6,29 @@
 ;;; il prodotto finale dovrebbe, date tre misure, verso, punto di inserimento e allineamento,
 ;;; tracciare un triangolo delle misure date nel punto e con l'allineamento dato
 ;;;
-;;; si rilascia con licenza LGPL v3.0 <http://www.opensource.org/licenses/lgpl-3.0.html>
-;;; per cui, fra l'altro, non è possibile ricavarne un prodotto commerciale, e qualsiasi
-;;; derivato (modifiche, incorporamenti in altro codice) deve avere la medesima licenza
 ;;;
 ;;; EN
 ;;; draws a triangle given three sides, insertion point and alignement,
 ;;; intended to help in the boring survey procedure
-;;; relased under the LGPL licence v3.0 <http://www.opensource.org/licenses/lgpl-3.0.html>
+;;; 
+;;; Copyright (C) 2026 Andrea Ricci
+;;;
+;;; This program is free software: you can redistribute it and/or modify
+;;; it under the terms of the GNU General Public License as published by
+;;; the Free Software Foundation, either version 3 of the License, or
+;;; (at your option) any later version.
+;;;
+;;; This program is distributed in the hope that it will be useful,
+;;; but WITHOUT ANY WARRANTY; without even the implied warranty of
+;;; MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+;;; See the GNU General Public License for more details.
+;;;
+;;; You should have received a copy of the GNU General Public License
+;;; along with this program. If not, see <https://www.gnu.org/licenses/>.
+;;;
+;;; Author: Andrea Ricci
+;;; Version: 1
+;;; ===========================================================================
 ;;; *****************************************************************************************************
 
 ;;;	IT

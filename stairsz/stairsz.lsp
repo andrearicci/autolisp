@@ -1,14 +1,44 @@
 (vl-load-com)
 
 ;------------------------------------------------------------
-; STAIR 042B Part 4.1 - geometry completion fix
+; STAIR 042B Part 4.3
+
+; Geometry stabilization
+
+; - INSUNITS validated
+; - NONE validated
+; - SQUARE geometry validated
+; - ROUND geometry validated
+; - start point fixed
+; Open issue:
+; last step completion
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+; messaggio per copilot:
+; Siamo alla STAIR 042B Part 4.3.
+
+; Tutto validato tranne:
+; last step completion.
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;
 ; Stair section generator
 ;
-; (c) 2026 Andrea Ricci (with AI help)
-;
-; License:
-; https://creativecommons.org/licenses/by-nc-sa/4.0/
+;;; Copyright (C) 2026 Andrea Ricci
+;;;
+;;; This program is free software: you can redistribute it and/or modify
+;;; it under the terms of the GNU General Public License as published by
+;;; the Free Software Foundation, either version 3 of the License, or
+;;; (at your option) any later version.
+;;;
+;;; This program is distributed in the hope that it will be useful,
+;;; but WITHOUT ANY WARRANTY; without even the implied warranty of
+;;; MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+;;; See the GNU General Public License for more details.
+;;;
+;;; You should have received a copy of the GNU General Public License
+;;; along with this program. If not, see <https://www.gnu.org/licenses/>.
+;;;
+;;; Author: Andrea Ricci
+;;; Version: xxx
 ;
 ; Commands:
 ; STAIR
@@ -266,47 +296,55 @@
 
   (list
 
+    ;; Top of riser minus nose height
+
     (list
-      (list (+ x (* runDir nx))
-            y
-            0.0)
+      (list
+        x
+        (+ y (- rise ny))
+        0.0
+      )
       0.0
     )
 
+    ;; Nose projection
+
     (list
-      (list (+ x (* runDir nx))
-            (- (+ y rise) ny)
-            0.0)
+      (list
+        (+ x (* runDir (- nx)))
+        (+ y (- rise ny))
+        0.0
+      )
       0.0
     )
 
+    ;; Nose top
+
     (list
-      (list x
-            (- (+ y rise) ny)
-            0.0)
+      (list
+        (+ x (* runDir (- nx)))
+        (+ y rise)
+        0.0
+      )
       0.0
     )
 
-    (list
-      (list x
-            (+ y rise)
-            0.0)
-      0.0
-    )
+    ;; Tread
 
     (list
-      (list (+ x (* runDir (+ tread nx)))
-            (+ y rise)
-            0.0)
+      (list
+        (+ x (* runDir tread))
+        (+ y rise)
+        0.0
+      )
       0.0
     )
   )
 )
-
 (defun stair:step-round
-  (x y tread rise dia runDir / r bulge)
+  (x y tread rise dia runDir / bulge)
 
-  (setq r (/ dia 2.0))
+  ;; Vertical semicircular nosing
 
   (setq bulge
     (if (> runDir 0.0)
@@ -317,36 +355,41 @@
 
   (list
 
-    (list
-      (list (+ x (* runDir r))
-            y
-            0.0)
-      0.0
-    )
+    ;; Start of vertical diameter
 
     (list
-      (list (+ x (* runDir r))
-            (- (+ y rise) dia)
-            0.0)
+      (list
+        x
+        (+ y (- rise dia))
+        0.0
+      )
       bulge
     )
 
+    ;; End of diameter / top of riser
+
     (list
-      (list (+ x (* runDir r))
-            (+ y rise)
-            0.0)
+      (list
+        x
+        (+ y rise)
+        0.0
+      )
       0.0
     )
 
+    ;; Tread
+
     (list
-      (list (+ x (* runDir (+ tread r)))
-            (+ y rise)
-            0.0)
+      (list
+        (+ x (* runDir tread))
+        (+ y rise)
+        0.0
+      )
       0.0
     )
   )
 )
-
+`
 ;------------------------------------------------------------
 ; Geometry engine
 ;------------------------------------------------------------
@@ -363,17 +406,15 @@
   (list
 
     (list
-
-      (list
-        0.0
-        0.0
-        0.0
-      )
-
+      (list 0.0 0.0 0.0)
       0.0
     )
   )
 )
+
+(setq x 0.0)
+(setq y 0.0)
+
 
 (setq x 0.0)
 (setq y 0.0)
@@ -389,46 +430,79 @@
   )
 )
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-  (repeat (1- risers)
+(repeat (1- risers)
 
-    (setq pts
+  ;; First step:
+  ;; use NONE profile to avoid
+  ;; nose at stair start
 
-      (append
-        pts
+  (setq pts
 
-        (cond
+    (append
 
-          ((= nosingType "SQUARE")
+      pts
 
-            (stair:step-square
-              x y tread rise
-              nosingX nosingY
-              runDir
-            )
-          )
+(cond
 
-          ((= nosingType "ROUND")
+  ((= nosingType "SQUARE")
 
-            (stair:step-round
-              x y tread rise
-              nosingY
-              runDir
-            )
-          )
+    (stair:step-square
 
-          (T
+      x
+      y
 
-            (stair:step-none
-              x y tread rise runDir
-            )
-          )
-        )
-      )
+      tread
+      rise
+
+      nosingX
+      nosingY
+
+      runDir
     )
-
-    (setq x (+ x (* runDir tread)))
-    (setq y (+ y rise))
   )
+
+  ((= nosingType "ROUND")
+
+    (stair:step-round
+
+      x
+      y
+
+      tread
+      rise
+
+      nosingY
+
+      runDir
+    )
+  )
+
+  (T
+
+    (stair:step-none
+
+      x
+      y
+
+      tread
+      rise
+
+      runDir
+    )
+  )
+)
+    )
+  )
+
+  (setq x
+    (+ x (* runDir tread))
+  )
+
+  (setq y
+    (+ y rise)
+  )
+)
+
  (foreach v pts
 
     (prompt
@@ -465,7 +539,27 @@
       )
     )
   )
+(setq pts
 
+  (append
+
+    pts
+
+    (list
+
+      (list
+
+        (list
+          x
+          (+ y rise)
+          0.0
+        )
+
+        0.0
+      )
+    )
+  )
+)
   pts
 
 )
@@ -521,6 +615,13 @@
 ; Preview creation
 ;------------------------------------------------------------
 
+;;;;;;;;debug
+(setq *stair-nosing-type* "ROUND")
+(setq *stair-nosing-y* (stair:default-round-dia))
+; (setq *stair-nosing-type* "SQUARE")
+; (setq *stair-nosing-x* (stair:default-square-x))
+; (setq *stair-nosing-y* (stair:default-square-y))
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; 
 (defun stair:update-preview
   (basePt
    risers
@@ -894,5 +995,5 @@
 ;------------------------------------------------------------
  
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(princ "\nSTAIR 042B Part 4.1 - geometry completion fix")
+(princ "\nSTAIR 042B Part 4.3 - Geometry stabilization")
 (princ)

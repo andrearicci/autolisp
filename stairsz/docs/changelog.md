@@ -1,3 +1,18 @@
-## prima versione con STAIR 042B REBUILD loaded - Part 1
+STAIR 042B Part 4.3
 
-funzioni di test del nosing
+Geometry stabilization
+
+✓ INSUNITS-aware constants
+✓ Height = ΔY
+✓ Direction = ΔX
+✓ Preview
+✓ Preview report
+✓ NONE profile validated
+✓ SQUARE nosing geometry validated
+✓ ROUND vertical semicircle geometry validated
+✓ Geometry starts at (0,0)
+
+Remaining issues:
+
+- missing final nosing
+- missing last riser closure
