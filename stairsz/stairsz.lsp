@@ -1,24 +1,17 @@
 (vl-load-com)
 
 ;------------------------------------------------------------
-; STAIR 042B Part 4.3
+; STAIR 042B Part 4.4
 
-; Geometry stabilization
+; Last Step Completion
 
-; - INSUNITS validated
-; - NONE validated
-; - SQUARE geometry validated
-; - ROUND geometry validated
-; - start point fixed
-; Open issue:
-; last step completion
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-; messaggio per copilot:
-; Siamo alla STAIR 042B Part 4.3.
-
-; Tutto validato tranne:
-; last step completion.
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+; ✓ NONE validated
+; ✓ SQUARE validated
+; ✓ ROUND validated
+; ✓ first nosing validated
+; ✓ last nosing validated
+; ✓ final riser validated
+; ✓ run calculation preserved
 ;
 ; Stair section generator
 ;
@@ -450,25 +443,127 @@
 
   ;; Final riser closure
 
+  ;; Last step completion
+
   (setq pts (append 
 
               pts
 
-              (list 
+              (cond 
 
-                (list 
+                ;; Last square nose
 
-                  (list 
-                    x
-                    (+ y rise)
-                    0.0
-                  )
+                ((= nosingType "SQUARE")
+(list
 
-                  0.0
+  ;; Top of final riser
+
+  (list
+    (list
+      x
+      (+ y (- rise nosingY))
+      0.0
+    )
+    0.0
+  )
+
+  ;; Nose projection
+
+  (list
+    (list
+      (+ x (* runDir (- nosingX)))
+      (+ y (- rise nosingY))
+      0.0
+    )
+    0.0
+  )
+
+  ;; Nose top
+
+  (list
+    (list
+      (+ x (* runDir (- nosingX)))
+      (+ y rise)
+      0.0
+    )
+    0.0
+  )
+
+  ;; Return to stair axis
+
+  (list
+    (list
+      x
+      (+ y rise)
+      0.0
+    )
+    0.0
+  )
+)
                 )
+
+                ;; Last round nose
+
+                ((= nosingType "ROUND")
+
+                 (list 
+
+                   (list 
+                     (list 
+                       x
+                       (+ y (- rise nosingY))
+                       0.0
+                     )
+                     (if (> runDir 0.0) 
+                       -1.0
+                       1.0
+                     )
+                   )
+
+                   (list 
+                     (list 
+                       x
+                       (+ y rise)
+                       0.0
+                     )
+                     0.0
+                   )
+                 )
+                )
+
+                ;; NONE
+
+                (T nil)
               )
             )
   )
+
+;; Final riser only for NONE
+
+(if (= nosingType "NONE")
+
+  (setq pts
+
+    (append
+
+      pts
+
+      (list
+
+        (list
+
+          (list
+            x
+            (+ y rise)
+            0.0
+          )
+
+          0.0
+        )
+      )
+    )
+  )
+)
 
   ;; Debug dump
 
@@ -537,8 +632,8 @@
 ;------------------------------------------------------------
 
 ;;;;;;;;debug squareround roundsquare ;;;;;;;;;;
-(setq *stair-nosing-type* "ROUND")
-(setq *stair-nosing-y* (stair:default-round-dia))
+; (setq *stair-nosing-type* "ROUND")
+; (setq *stair-nosing-y* (stair:default-round-dia))
 ; (setq *stair-nosing-type* "SQUARE")
 ; (setq *stair-nosing-x* (stair:default-square-x))
 ; (setq *stair-nosing-y* (stair:default-square-y))
@@ -852,5 +947,5 @@
 ;------------------------------------------------------------
  
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(princ "\nSTAIR 042B Part 4.3 - Geometry stabilization")
+(princ "\nSTAIR 042B Part 4.4 - Geometry stabilization")
 (princ)
