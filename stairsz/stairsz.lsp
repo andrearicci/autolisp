@@ -1,7 +1,7 @@
 (vl-load-com)
 
 ;------------------------------------------------------------
-; STAIR 042B Part 5A.1
+; STAIR 042B-Part5A-Stable
 
 ; State Infrastructure
 
@@ -28,7 +28,44 @@
 ;;;
 ;;; Author: Andrea Ricci
 ;;; Version: xxx
-;
+;;;;;;;;;;;;;;;; da incollare in copilot per ricominciare
+; ;Progetto: STAIR
+
+; Versione corrente:
+; STAIR 042B Part 5A
+
+; Stato:
+; ✓ Geometry Engine frozen
+; ✓ NONE validated
+; ✓ SQUARE validated
+; ✓ ROUND validated
+; ✓ INSUNITS validated
+; ✓ Height = ΔY
+; ✓ Direction = ΔX
+; ✓ Preview report validated
+; ✓ Accept promotes preview to final geometry
+; ✓ Correction loop + - A C funzionante
+
+; Roadmap:
+
+; 042B Part 5B
+; E
+; F
+
+; 042B Part 5C
+; N
+
+; 042B Part 6
+; Accept + Report
+
+; 042C
+; MTEXT
+
+; 043
+; UCS Independent
+
+; Incollerò il codice corrente se necessario.
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ; Commands:
 ; STAIR
 ; STAIRINFO
@@ -1087,5 +1124,5 @@
 ;------------------------------------------------------------
  
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(princ "\nSTAIR 042B Part 5A.1 loaded. Type STAIR to start.")
+(princ "\nSTAIR 042B-Part5A-Stable loaded. Type STAIR to start.")
 (princ)
