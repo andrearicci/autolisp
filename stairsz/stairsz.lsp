@@ -1,17 +1,13 @@
 (vl-load-com)
 
 ;------------------------------------------------------------
-; STAIR 042B Part 4.4
+; STAIR 042B Part 5A
 
-; Last Step Completion
+; State Infrastructure
 
-; ✓ NONE validated
-; ✓ SQUARE validated
-; ✓ ROUND validated
-; ✓ first nosing validated
-; ✓ last nosing validated
-; ✓ final riser validated
-; ✓ run calculation preserved
+; - stair state variables added
+; - recompute function added
+; - refresh-preview function added
 ;
 ; Stair section generator
 ;
@@ -50,6 +46,19 @@
 (setq *stair-fixed-tread* 30.0)
 
 (setq *stair-nosing-type* "NONE")
+(setq *stair-bp* nil)
+(setq *stair-ep* nil)
+
+(setq *stair-height* 0.0)
+
+(setq *stair-risers* 0)
+(setq *stair-rise* 0.0)
+(setq *stair-tread* 0.0)
+
+(setq *stair-rundir* 1.0)
+
+
+
 
 ;------------------------------------------------------------
 ; Helpers
@@ -121,6 +130,8 @@
 (setq *stair-nosing-x* (stair:default-square-x))
 
 (setq *stair-nosing-y* (stair:default-square-y))
+(setq *stair-fixed-tread*
+      (stair:cm->units 30.0))
 
 ;------------------------------------------------------------
 ; Ergonomic helpers
@@ -178,7 +189,73 @@
     )
   )
 )
+;------------------------------------------------------------
+; Recompute stair state
+;------------------------------------------------------------
 
+(defun stair:recompute (/)
+
+  (setq *stair-rise*
+
+    (/ *stair-height*
+       *stair-risers*)
+  )
+
+  (cond
+
+    ((= *stair-mode* "ERGONOMIC")
+
+      (setq *stair-tread*
+
+        (stair:ergonomic-tread
+          *stair-rise*
+        )
+      )
+    )
+
+    ((= *stair-mode* "FIXEDTREAD")
+
+      (setq *stair-tread*
+
+        *stair-fixed-tread*
+      )
+    )
+  )
+
+  (princ)
+)
+;------------------------------------------------------------
+; Refresh preview
+;------------------------------------------------------------
+
+(defun stair:refresh-preview (/)
+
+  (stair:update-preview
+
+    *stair-bp*
+
+    *stair-risers*
+
+    *stair-rise*
+
+    *stair-tread*
+
+    *stair-rundir*
+  )
+
+  (stair:preview-report
+
+    *stair-height*
+
+    *stair-risers*
+
+    *stair-rise*
+
+    *stair-tread*
+  )
+
+  (princ)
+)
 ;------------------------------------------------------------
 ; Nosing clamp
 ;------------------------------------------------------------
@@ -916,7 +993,18 @@
                         rise
                       )
           )
+;; Save current stair state
 
+(setq *stair-bp* bp)
+(setq *stair-ep* ep)
+
+(setq *stair-height* height)
+
+(setq *stair-risers* risers)
+(setq *stair-rise* rise)
+(setq *stair-tread* tread)
+
+(setq *stair-rundir* runDir)
           ;; Preview
 
           (stair:update-preview bp risers rise tread runDir)
@@ -947,5 +1035,5 @@
 ;------------------------------------------------------------
  
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(princ "\nSTAIR 042B Part 4.4 - Geometry stabilization")
+(princ "\nSTAIR 042B Part 5A loaded. Type STAIR to start.")
 (princ)
