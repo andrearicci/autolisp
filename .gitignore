@@ -49,6 +49,9 @@ logs/
 *.dwl
 *.dwl2
 *.dwl3
+*.bak
+*.ac$
+*.tmp
 
 # ==========================================
 # File di Configurazione Locale (Opzionale)
