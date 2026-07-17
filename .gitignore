@@ -29,6 +29,7 @@ Desktop.ini
 # Se usi Notepad++ o altri editor, ignora i file di sessione
 *.session
 *.tmp
+*.lock
 
 # ==========================================
 # File di Log (se generati dai tuoi script)
@@ -45,6 +46,9 @@ logs/
 # Se li vuoi ignorare:
 *.vlx
 *.fas
+*.dwl
+*.dwl2
+*.dwl3
 
 # ==========================================
 # File di Configurazione Locale (Opzionale)
