@@ -1,7 +1,7 @@
 (vl-load-com)
 
 ;------------------------------------------------------------
-; STAIR 042B Part 5A
+; STAIR 042B Part 5A.1
 
 ; State Infrastructure
 
@@ -130,8 +130,7 @@
 (setq *stair-nosing-x* (stair:default-square-x))
 
 (setq *stair-nosing-y* (stair:default-square-y))
-(setq *stair-fixed-tread*
-      (stair:cm->units 30.0))
+(setq *stair-fixed-tread* (stair:cm->units 30.0))
 
 ;------------------------------------------------------------
 ; Ergonomic helpers
@@ -193,32 +192,27 @@
 ; Recompute stair state
 ;------------------------------------------------------------
 
-(defun stair:recompute (/)
+(defun stair:recompute (/) 
 
-  (setq *stair-rise*
-
-    (/ *stair-height*
-       *stair-risers*)
+  (setq *stair-rise* (/ 
+                       *stair-height*
+                       *stair-risers*
+                     )
   )
 
-  (cond
+  (cond 
 
     ((= *stair-mode* "ERGONOMIC")
 
-      (setq *stair-tread*
-
-        (stair:ergonomic-tread
-          *stair-rise*
-        )
-      )
+     (setq *stair-tread* (stair:ergonomic-tread 
+                           *stair-rise*
+                         )
+     )
     )
 
     ((= *stair-mode* "FIXEDTREAD")
 
-      (setq *stair-tread*
-
-        *stair-fixed-tread*
-      )
+     (setq *stair-tread* *stair-fixed-tread*)
     )
   )
 
@@ -228,22 +222,13 @@
 ; Refresh preview
 ;------------------------------------------------------------
 
-(defun stair:refresh-preview (/)
+(defun stair:refresh-preview (/) 
 
-  (stair:update-preview
-
-    *stair-bp*
-
-    *stair-risers*
-
-    *stair-rise*
-
-    *stair-tread*
-
-    *stair-rundir*
+  (stair:update-preview *stair-bp* *stair-risers* *stair-rise* *stair-tread* 
+                        *stair-rundir*
   )
 
-  (stair:preview-report
+  (stair:preview-report 
 
     *stair-height*
 
@@ -450,7 +435,7 @@
     )
   )
 )
-`
+
 ;------------------------------------------------------------
 ; Geometry engine
 ;------------------------------------------------------------
@@ -531,52 +516,52 @@
                 ;; Last square nose
 
                 ((= nosingType "SQUARE")
-(list
+                 (list 
 
-  ;; Top of final riser
+                   ;; Top of final riser
 
-  (list
-    (list
-      x
-      (+ y (- rise nosingY))
-      0.0
-    )
-    0.0
-  )
+                   (list 
+                     (list 
+                       x
+                       (+ y (- rise nosingY))
+                       0.0
+                     )
+                     0.0
+                   )
 
-  ;; Nose projection
+                   ;; Nose projection
 
-  (list
-    (list
-      (+ x (* runDir (- nosingX)))
-      (+ y (- rise nosingY))
-      0.0
-    )
-    0.0
-  )
+                   (list 
+                     (list 
+                       (+ x (* runDir (- nosingX)))
+                       (+ y (- rise nosingY))
+                       0.0
+                     )
+                     0.0
+                   )
 
-  ;; Nose top
+                   ;; Nose top
 
-  (list
-    (list
-      (+ x (* runDir (- nosingX)))
-      (+ y rise)
-      0.0
-    )
-    0.0
-  )
+                   (list 
+                     (list 
+                       (+ x (* runDir (- nosingX)))
+                       (+ y rise)
+                       0.0
+                     )
+                     0.0
+                   )
 
-  ;; Return to stair axis
+                   ;; Return to stair axis
 
-  (list
-    (list
-      x
-      (+ y rise)
-      0.0
-    )
-    0.0
-  )
-)
+                   (list 
+                     (list 
+                       x
+                       (+ y rise)
+                       0.0
+                     )
+                     0.0
+                   )
+                 )
                 )
 
                 ;; Last round nose
@@ -615,32 +600,30 @@
             )
   )
 
-;; Final riser only for NONE
+  ;; Final riser only for NONE
 
-(if (= nosingType "NONE")
+  (if (= nosingType "NONE") 
 
-  (setq pts
+    (setq pts (append 
 
-    (append
+                pts
 
-      pts
+                (list 
 
-      (list
+                  (list 
 
-        (list
+                    (list 
+                      x
+                      (+ y rise)
+                      0.0
+                    )
 
-          (list
-            x
-            (+ y rise)
-            0.0
-          )
-
-          0.0
-        )
-      )
+                    0.0
+                  )
+                )
+              )
     )
   )
-)
 
   ;; Debug dump
 
@@ -933,7 +916,8 @@
 ; 042B PART 4
 ;------------------------------------------------------------
 
-(defun c:STAIR (/ bp ep runDir height risers rise tread) 
+(defun c:STAIR
+  (/ bp ep runDir height risers rise tread cmd done)
 
   (setq bp (getpoint 
              "\nBase point: "
@@ -993,18 +977,18 @@
                         rise
                       )
           )
-;; Save current stair state
+          ;; Save current stair state
 
-(setq *stair-bp* bp)
-(setq *stair-ep* ep)
+          (setq *stair-bp* bp)
+          (setq *stair-ep* ep)
 
-(setq *stair-height* height)
+          (setq *stair-height* height)
 
-(setq *stair-risers* risers)
-(setq *stair-rise* rise)
-(setq *stair-tread* tread)
+          (setq *stair-risers* risers)
+          (setq *stair-rise* rise)
+          (setq *stair-tread* tread)
 
-(setq *stair-rundir* runDir)
+          (setq *stair-rundir* runDir)
           ;; Preview
 
           (stair:update-preview bp risers rise tread runDir)
@@ -1021,6 +1005,74 @@
 
             tread
           )
+          ;; Correction loop
+          (setq done nil)
+
+          (while (not done) 
+
+            (initget "+ - A C")
+
+            (setq cmd (getkword 
+
+                        "\n[+/-/A/C] <A>: "
+                      )
+            )
+
+            (if (null cmd) 
+              (setq cmd "A")
+            )
+
+            (cond 
+
+              ;; Accept
+((= cmd "A")
+
+  ;; Promote preview to final geometry
+
+  (setq *stair-preview* nil)
+
+  (setq done T)
+)
+
+
+              ;; Cancel
+
+              ((= cmd "C")
+
+               (stair:delete-preview)
+
+               (setq done T)
+              )
+
+              ;; Add riser
+
+              ((= cmd "+")
+
+               (setq *stair-risers* (1+ *stair-risers*))
+
+               (stair:recompute)
+
+               (stair:refresh-preview)
+              )
+
+              ;; Remove riser
+
+              ((= cmd "-")
+
+               (if (> *stair-risers* 2) 
+
+                 (progn 
+
+                   (setq *stair-risers* (1- *stair-risers*))
+
+                   (stair:recompute)
+
+                   (stair:refresh-preview)
+                 )
+               )
+              )
+            )
+          )
         )
       )
     )
@@ -1035,5 +1087,5 @@
 ;------------------------------------------------------------
  
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(princ "\nSTAIR 042B Part 5A loaded. Type STAIR to start.")
+(princ "\nSTAIR 042B Part 5A.1 loaded. Type STAIR to start.")
 (princ)
