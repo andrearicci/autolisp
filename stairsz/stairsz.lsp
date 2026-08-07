@@ -1,7 +1,9 @@
 (vl-load-com)
 
 ;------------------------------------------------------------
-; STAIR 042B-Part5A-Stable
+; STAIR 042B-Part5D-Nosing 
+
+;da fare - sistemare personalizzazione tread
 
 ; State Infrastructure
 
@@ -953,8 +955,12 @@
 ; 042B PART 4
 ;------------------------------------------------------------
 
+
 (defun c:STAIR
-  (/ bp ep runDir height risers rise tread cmd done)
+  (/ bp ep runDir height risers rise tread
+     cmd done
+     ncmd nx ny dia dims
+    )
 
   (setq bp (getpoint 
              "\nBase point: "
@@ -1047,20 +1053,168 @@
 
           (while (not done) 
 
-            (initget "+ - A C")
+          (initget "+ - N A C")
 
-            (setq cmd (getkword 
+          (setq cmd (getkword
 
-                        "\n[+/-/A/C] <A>: "
-                      )
-            )
+                      "\n[+/-/N/A/C] <A>:"
+                    )
+          )
 
             (if (null cmd) 
               (setq cmd "A")
             )
 
             (cond 
+              ;; Nosing
 
+              ((= cmd "N")
+
+                (initget "None Square Round Cancel")
+
+                (setq ncmd
+
+                  (getkword
+
+                    (strcat
+
+                      "\nNosing [None/Square/Round/Cancel] <Cancel>: "
+                    )
+                  )
+                )
+
+                (cond
+
+                  ;; Cancel
+
+                  ((or
+
+                     (null ncmd)
+
+                     (= ncmd "Cancel")
+                   )
+
+                   (princ)
+                  )
+
+                  ;; NONE
+
+                  ((= ncmd "None")
+
+                    (setq *stair-nosing-type* "NONE")
+
+                    (stair:refresh-preview)
+                  )
+
+                  ;; SQUARE
+
+                  ((= ncmd "Square")
+
+                    (setq nx
+
+                      (getreal
+
+                        (strcat
+
+                          "\nNosing X <"
+
+                          (stair:f2 *stair-nosing-x*)
+
+                          ">: "
+                        )
+                      )
+                    )
+
+                    (if (null nx)
+                      (setq nx *stair-nosing-x*)
+                    )
+
+                    (setq ny
+
+                      (getreal
+
+                        (strcat
+
+                          "\nNosing Y <"
+
+                          (stair:f2 *stair-nosing-y*)
+
+                          ">: "
+                        )
+                      )
+                    )
+
+                    (if (null ny)
+                      (setq ny *stair-nosing-y*)
+                    )
+
+                    (setq dims
+
+                      (stair:clamp-nosing
+
+                        *stair-rise*
+                        *stair-tread*
+
+                        "SQUARE"
+
+                        nx
+                        ny
+                      )
+                    )
+
+                    (setq *stair-nosing-type* "SQUARE")
+
+                    (setq *stair-nosing-x* (car dims))
+                    (setq *stair-nosing-y* (cadr dims))
+
+                    (stair:refresh-preview)
+                  )
+
+                  ;; ROUND
+
+                  ((= ncmd "Round")
+
+                    (setq dia
+
+                      (getreal
+
+                        (strcat
+
+                          "\nDiameter <"
+
+                          (stair:f2 *stair-nosing-y*)
+
+                          ">: "
+                        )
+                      )
+                    )
+
+                    (if (null dia)
+                      (setq dia *stair-nosing-y*)
+                    )
+
+                    (setq dims
+
+                      (stair:clamp-nosing
+
+                        *stair-rise*
+                        *stair-tread*
+
+                        "ROUND"
+
+                        0.0
+                        dia
+                      )
+                    )
+
+                    (setq *stair-nosing-type* "ROUND")
+
+                    (setq *stair-nosing-y* (cadr dims))
+
+                    (stair:refresh-preview)
+                  )
+                )
+              )
               ;; Accept
 ((= cmd "A")
 
@@ -1124,5 +1278,5 @@
 ;------------------------------------------------------------
  
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(princ "\nSTAIR 042B-Part5A-Stable loaded. Type STAIR to start.")
+(princ "\nSTAIR 042B-Part5D-Nosing loaded. Type STAIR to start.")
 (princ)
