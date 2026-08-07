@@ -1,9 +1,9 @@
 (vl-load-com)
 
 ;------------------------------------------------------------
-; STAIR 042B-Part5D - Tread & Nosing Stable
+; STAIR 042B-Part5E - Tread & Nosing Stable -UCS fixed
 
-;da fare - sistemare personalizzazione tread
+
 
 ; State Infrastructure
 
@@ -261,21 +261,43 @@
 ; Refresh preview
 ;------------------------------------------------------------
 
-(defun stair:refresh-preview (/) 
+(defun stair:refresh-preview (/)
 
-  (stair:update-preview *stair-bp* *stair-risers* *stair-rise* *stair-tread* 
-                        *stair-rundir*
-  )
+  (if
 
-  (stair:preview-report 
+    (and
 
-    *stair-height*
+      *stair-bp*
 
-    *stair-risers*
+      (> *stair-risers* 1)
+    )
 
-    *stair-rise*
+    (progn
 
-    *stair-tread*
+      (stair:update-preview
+
+        *stair-bp*
+
+        *stair-risers*
+
+        *stair-rise*
+
+        *stair-tread*
+
+        *stair-rundir*
+      )
+
+      (stair:preview-report
+
+        *stair-height*
+
+        *stair-risers*
+
+        *stair-rise*
+
+        *stair-tread*
+      )
+    )
   )
 
   (princ)
@@ -737,42 +759,73 @@
 ; (setq *stair-nosing-x* (stair:default-square-x))
 ; (setq *stair-nosing-y* (stair:default-square-y))
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; 
-(defun stair:update-preview (basePt risers rise tread runDir / geom) 
+(defun stair:update-preview (basePt risers rise tread runDir / geom)
 
   (stair:delete-preview)
 
-  (setq geom (stair:build-geometry risers rise tread runDir *stair-nosing-type* 
-                                   *stair-nosing-x* *stair-nosing-y*
-             )
+  ;; Build geometry in local UCS coordinates
+
+  (setq geom
+
+    (stair:build-geometry
+
+      risers
+      rise
+      tread
+      runDir
+
+      *stair-nosing-type*
+      *stair-nosing-x*
+      *stair-nosing-y*
+    )
   )
 
-  (setq geom (mapcar 
+  ;; Translate geometry from local stair coordinates
+  ;; to UCS coordinates based on picked base point,
+  ;; then convert UCS -> WCS before creating polyline.
 
-               '(lambda (v) 
+  (setq geom
 
-                  (list 
+    (mapcar
 
-                    (list 
-                      (+ (car basePt) 
-                         (car (car v))
-                      )
+      '(lambda (v / pt)
 
-                      (+ (cadr basePt) 
-                         (cadr (car v))
-                      )
+         (setq pt
 
-                      0.0
-                    )
+           (list
 
-                    (cadr v)
-                  )
-                )
-
-               geom
+             (+ (car basePt)
+                (car (car v))
              )
+
+             (+ (cadr basePt)
+                (cadr (car v))
+             )
+
+             0.0
+           )
+         )
+
+         ;; UCS -> WCS transformation
+
+         (setq pt (trans pt 1 0))
+
+         (list
+
+           pt
+
+           (cadr v)
+         )
+       )
+
+      geom
+    )
   )
 
-  (setq *stair-preview* (stair:create-polyline geom))
+  (setq *stair-preview*
+
+    (stair:create-polyline geom)
+  )
 
   (princ)
 )
@@ -975,7 +1028,22 @@
      ncmd nx ny dia dims
      tcmd tv tdone
     )
+(defun *error* (msg)
 
+  (if
+    (and msg
+         (not (wcmatch (strcase msg) "*CANCEL*,*QUIT*"))
+    )
+    (prompt
+      (strcat
+        "\nError: "
+        msg
+      )
+    )
+  )
+
+  (princ)
+)
   (setq bp (getpoint 
              "\nBase point: "
            )
@@ -1080,7 +1148,9 @@
             )
 
             (cond 
-                            ;; Tread submenu
+
+
+              ;; Tread submenu
 
               ((= cmd "T")
 
@@ -1123,7 +1193,9 @@
                         )
                       )
 
-                      (if tv
+                      (if
+
+                        (and tv (> tv 0.0))
 
                         (progn
 
@@ -1134,6 +1206,11 @@
                           (stair:recompute)
 
                           (stair:refresh-preview)
+                        )
+
+                        (if tv
+
+                          (prompt "\nInvalid tread value.")
                         )
                       )
                     )
@@ -1370,5 +1447,5 @@
 ;------------------------------------------------------------
  
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(princ "\nSTAIR 042B-Part5D- Tread & Nosing Stable. Type STAIR to start.")
+(princ "\nSTAIR 042B-Part5E- UCS fixed. Type STAIR to start.")
 (princ)
