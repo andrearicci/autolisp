@@ -1,7 +1,7 @@
 (vl-load-com)
 
 ;------------------------------------------------------------
-; STAIR 043 UCS Independent Stable
+; STAIR 044 - final report
 
 
 
@@ -991,6 +991,136 @@
 )
 
 ;------------------------------------------------------------
+; Final report
+;------------------------------------------------------------
+
+(defun stair:final-report (/ treadDesc nosingDesc) 
+
+  ;; Tread description
+
+  (setq treadDesc (if (= *stair-mode* "ERGONOMIC") 
+
+                    "ERGONOMIC"
+
+                    (strcat 
+
+                      "FIXED ("
+
+                      (stair:f2 *stair-fixed-tread*)
+
+                      ")"
+                    )
+                  )
+  )
+
+  ;; Nosing description
+
+  (setq nosingDesc (cond 
+
+                     ((= *stair-nosing-type* "NONE")
+
+                      "NONE"
+                     )
+
+                     ((= *stair-nosing-type* "SQUARE")
+
+                      (strcat 
+
+                        "SQUARE ("
+
+                        (stair:f2 *stair-nosing-x*)
+
+                        " x "
+
+                        (stair:f2 *stair-nosing-y*)
+
+                        ")"
+                      )
+                     )
+
+                     ((= *stair-nosing-type* "ROUND")
+
+                      (strcat 
+
+                        "ROUND (Ø"
+
+                        (stair:f2 *stair-nosing-y*)
+
+                        ")"
+                      )
+                     )
+
+                     (T
+
+                      *stair-nosing-type*
+                     )
+                   )
+  )
+
+  (prompt 
+
+    (strcat 
+
+      "\nStair accepted -> "
+
+      (itoa *stair-risers*)
+
+      " risers of "
+
+      (stair:f2 *stair-rise*)
+
+      " | "
+
+      (itoa 
+
+        (stair:tread-count *stair-risers*)
+      )
+
+      " treads of "
+
+      (stair:f2 *stair-tread*)
+
+      " | Height "
+
+      (stair:f2 *stair-height*)
+
+      " | Run "
+
+      (stair:f2 
+
+        (stair:total-run 
+
+          *stair-risers*
+          *stair-tread*
+        )
+      )
+
+      " | 2R+T "
+
+      (stair:f2 
+
+        (+ 
+
+          (* 2.0 *stair-rise*)
+
+          *stair-tread*
+        )
+      )
+
+      " | Tread "
+
+      treadDesc
+
+      " | Nosing "
+
+      nosingDesc
+    )
+  )
+
+  (princ)
+)
+
+;------------------------------------------------------------
 ; STAIR
 ; 042B PART 4
 ;------------------------------------------------------------
@@ -1109,7 +1239,7 @@
             (initget "Add Remove Tread Nosing Accept Cancel")
             (setq cmd (getkword "\n[Add/Remove/Tread/Nosing/Accept/Cancel] <Accept>: "))
 
-(if (null cmd) (setq cmd "Accept") )
+            (if (null cmd) (setq cmd "Accept"))
 
             (cond 
 
@@ -1318,14 +1448,11 @@
               )
               ;; Accept
               ((= cmd "Accept")
-
                ;; Promote preview to final geometry
-
                (setq *stair-preview* nil)
-
+               (stair:final-report)
                (setq done T)
               )
-
 
               ;; Cancel
 
@@ -1379,5 +1506,5 @@
 ;------------------------------------------------------------
  
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(princ "\nSTAIR 043 UCS Independent Stable. Type STAIR to start.")
+(princ "\nSTAIR 044 - final report. Type STAIR to start.")
 (princ)
