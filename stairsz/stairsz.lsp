@@ -1,7 +1,7 @@
 (vl-load-com)
 
 ;------------------------------------------------------------
-; STAIR 045 - Mtext final report
+; STAIR 046 - Constrained Tread Mode
 
 
 
@@ -14,7 +14,9 @@
 ;  ✅ Preview report
 ;  ✅ Final report su command line
 ;  ✅ Accept / Cancel
-;  ❌ MTEXT report (non ancora implementato)
+;  ✅ MTEXT report
+;  ✅ added constrained mode (from A to B)
+; da sistemare: quando cambio il tread da una modalità all'altra non mi prende il valore di default (vecchio) premendo invio, se non lo digito
 ;
 ; Stair section generator
 ;
@@ -103,7 +105,7 @@
 (setq *stair-rundir* 1.0)
 
 (setq *stair-report-mtext* "No")
-
+(setq *stair-total-run* 0.0)
 
 ;------------------------------------------------------------
 ; Helpers
@@ -259,6 +261,39 @@
 
      (setq *stair-tread* *stair-fixed-tread*)
     )
+    ;;;; debug
+    ((= *stair-mode* "CONSTRAINED")
+
+  (prompt
+    (strcat
+      "\nRUN="
+      (rtos *stair-total-run* 2 3)
+    )
+  )
+
+  (setq *stair-tread*
+
+    (/ *stair-total-run*
+
+       (stair:tread-count
+         *stair-risers*
+       )
+    )
+  )
+)
+    ;;;; end debug
+    ; ((= *stair-mode* "CONSTRAINED")
+
+    ;     (setq *stair-tread*
+
+    ;       (/ *stair-total-run*
+
+    ;         (stair:tread-count
+    ;           *stair-risers*
+    ;         )
+    ;       )
+    ;     )
+    ;   )
   )
 
   (princ)
@@ -856,6 +891,24 @@
         (progn 
 
           (setq height (stair:get-height bp ep))
+          
+          (setq *stair-total-run*
+
+            (abs
+
+              (- (car ep)
+
+                (car bp)
+              )
+            )
+          )
+          ;;;; debug
+          (prompt
+  (strcat
+    "\nTOTAL RUN="
+    (rtos *stair-total-run* 2 3)
+  )
+)
 
           (setq risers (stair:propose-risers height))
 
@@ -1004,20 +1057,39 @@
 
   ;; Tread description
 
-  (setq treadDesc (if (= *stair-mode* "ERGONOMIC") 
+(setq treadDesc
 
-                    "ERGONOMIC"
+  (cond
 
-                    (strcat 
+    ((= *stair-mode* "ERGONOMIC")
 
-                      "FIXED ("
+      "ERGONOMIC"
+    )
 
-                      (stair:f2 *stair-fixed-tread*)
+    ((= *stair-mode* "FIXEDTREAD")
 
-                      ")"
-                    )
-                  )
+      (strcat
+
+        "FIXED ("
+
+        (stair:f2 *stair-fixed-tread*)
+
+        ")"
+      )
+    )
+
+    ((= *stair-mode* "CONSTRAINED")
+
+      "CONSTRAINED"
+    )
+
+    (T
+
+      *stair-mode*
+    )
   )
+)
+
 
   ;; Nosing description
 
@@ -1334,7 +1406,26 @@
                          ep
                        )
           )
+;;;debug
+          (setq *stair-total-run*
 
+  (abs
+
+    (- (car ep)
+
+       (car bp)
+    )
+  )
+)
+
+(prompt
+  (strcat
+    "\nTOTAL RUN="
+    (rtos *stair-total-run* 2 3)
+  )
+)
+          ;;;/end debug
+          
           ;; Proposed risers
 
           (setq risers (stair:propose-risers 
@@ -1362,6 +1453,7 @@
           (setq *stair-ep* ep)
 
           (setq *stair-height* height)
+;          (setq *stair-total-run* *stair-total-run*)
 
           (setq *stair-risers* risers)
           (setq *stair-rise* rise)
@@ -1389,12 +1481,13 @@
 
           (while (not done) 
 
-            (initget "Add Remove Tread Nosing Accept Cancel")
-            (setq cmd (getkword "\n[Add/Remove/Tread/Nosing/Accept/Cancel] <Accept>: "))
+            (initget "+ -  Tread Nosing Accept Exit")
+            (setq cmd (getkword "\n[+/-/Tread/Nosing/Accept/Exit] <Accept>: "))
 
             (if (null cmd) (setq cmd "Accept"))
 
             (cond 
+
 
 
               ;; Tread submenu
@@ -1405,11 +1498,11 @@
 
                (while (not tdone) 
 
-                 (initget "Value Ergonomic Accept")
+                 (initget "Value Ergonomic Constrained Accept")
 
                  (setq tcmd (getkword 
 
-                              "\nTread [Value/Ergonomic/Accept] <Accept>: "
+                              "\nTread [Value/Ergonomic/Constrained/Accept] <Accept>: "
                             )
                  )
 
@@ -1466,7 +1559,14 @@
 
                     (stair:refresh-preview)
                    )
+((= tcmd "Constrained")
 
+  (setq *stair-mode* "CONSTRAINED")
+
+  (stair:recompute)
+
+  (stair:refresh-preview)
+)
                    ;; Accept
 
                    ((= tcmd "Accept")
@@ -1600,7 +1700,6 @@
                )
               )
               ;; Accept
-              ;; Accept
 
               ((= cmd "Accept")
 
@@ -1648,9 +1747,9 @@
                 (setq done T)
               )
 
-              ;; Cancel
+              ;; Exit
 
-              ((= cmd "Cancel")
+              ((= cmd "Exit")
 
                (stair:delete-preview)
 
@@ -1659,7 +1758,7 @@
 
               ;; Add riser
 
-              ((= cmd "Add")
+              ((= cmd "+")
 
                (setq *stair-risers* (1+ *stair-risers*))
 
@@ -1670,7 +1769,7 @@
 
               ;; Remove riser
 
-              ((= cmd "Remove")
+              ((= cmd "-")
 
                (if (> *stair-risers* 2) 
 
@@ -1700,5 +1799,5 @@
 ;------------------------------------------------------------
  
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(princ "\nSTAIR 045 - Mtext final report. Type STAIR to start.")
+(princ "\nSTAIR 046 - Constrained Tread Mode. Type STAIR to start.")
 (princ)
