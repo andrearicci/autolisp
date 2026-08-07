@@ -1,19 +1,25 @@
 (vl-load-com)
 
 ;------------------------------------------------------------
-; STAIR 044 - final report
+; STAIR 045 - Mtext final report
 
 
 
 ; State Infrastructure
 
-; - stair state variables added
-; - recompute function added
-; - refresh-preview function added
+;  ✅ Geometry Engine frozen
+;  ✅ UCS Independent
+;  ✅ Tread submenu
+;  ✅ Nosing submenu
+;  ✅ Preview report
+;  ✅ Final report su command line
+;  ✅ Accept / Cancel
+;  ❌ MTEXT report (non ancora implementato)
 ;
 ; Stair section generator
 ;
-;;; Copyright (C) 2026 Andrea Ricci
+;;; Copyright (C) 2026 Andrea Ricci con l'aiuto dell'A.I. (amico immaginario).
+;;; https://andrearicci.it
 ;;;
 ;;; This program is free software: you can redistribute it and/or modify
 ;;; it under the terms of the GNU General Public License as published by
@@ -96,7 +102,7 @@
 
 (setq *stair-rundir* 1.0)
 
-
+(setq *stair-report-mtext* "No")
 
 
 ;------------------------------------------------------------
@@ -1067,7 +1073,7 @@
 
       " risers of "
 
-      (stair:f2 *stair-rise*)
+      (rtos *stair-rise* 2 3)
 
       " | "
 
@@ -1078,7 +1084,7 @@
 
       " treads of "
 
-      (stair:f2 *stair-tread*)
+      (rtos *stair-tread* 2 3)
 
       " | Height "
 
@@ -1119,6 +1125,153 @@
 
   (princ)
 )
+;------------------------------------------------------------ 
+; MTEXT report 
+;------------------------------------------------------------
+(defun stair:create-report-mtext
+  (/ run ang txt txtHeight insPt rot obj)
+
+  (vl-load-com)
+
+  ;; Total run
+
+  (setq run
+    (stair:total-run
+      *stair-risers*
+      *stair-tread*
+    )
+  )
+
+  ;; Stair angle in degrees
+
+  (setq ang
+    (*
+      180.0
+      (/ (atan (/ *stair-height* run))
+         pi
+      )
+    )
+  )
+
+  ;; Text height
+
+  (setq txtHeight
+    (/ *stair-rise* 3.0)
+  )
+
+  ;; MTEXT contents
+
+  (setq txt
+    (strcat
+
+      "Height = "
+      (stair:f2 *stair-height*)
+
+      "\\P"
+
+      "Run = "
+      (stair:f2 run)
+
+      "\\P"
+
+      (itoa *stair-risers*)
+      " risers of "
+      (stair:f2 *stair-rise*)
+
+      "\\P"
+
+      (itoa
+        (stair:tread-count *stair-risers*)
+      )
+      " treads of "
+      (stair:f2 *stair-tread*)
+
+      "\\P"
+
+      "2R+T = "
+      (stair:f2
+        (+
+          (* 2.0 *stair-rise*)
+          *stair-tread*
+        )
+      )
+
+      "\\P"
+
+      "Angle = "
+      (rtos ang 2 1)
+      "\\U+00B0" ;; "°"
+    )
+  )
+
+  ;; Insertion point in UCS
+
+  (setq insPt
+    (list
+
+      (+ (car *stair-bp*)
+         (* *stair-rundir* run)
+      )
+
+      (+ (cadr *stair-bp*)
+         *stair-height*
+         (/ *stair-rise* 2.0)
+         (* 6.0 txtHeight)
+         *stair-rise*
+      )
+
+      0.0
+    )
+  )
+
+  ;; UCS -> WCS
+
+  (setq insPt
+    (trans insPt 1 0)
+  )
+
+  ;; UCS rotation
+
+  (setq rot
+    (angle
+      '(0.0 0.0 0.0)
+      (getvar "UCSXDIR")
+    )
+  )
+
+  ;; Create MTEXT
+
+  (setq obj
+    (vla-AddMText
+
+      (vla-get-ModelSpace
+
+        (vla-get-ActiveDocument
+
+          (vlax-get-acad-object)
+        )
+      )
+
+      (vlax-3d-point insPt)
+
+      0.0
+
+      txt
+    )
+  )
+
+  ;; Properties
+
+  (vla-put-Height obj txtHeight)
+
+  (vla-put-Rotation obj rot)
+
+  ;; Bottom Left
+
+  (vla-put-AttachmentPoint obj 7)
+
+  (princ)
+)
 
 ;------------------------------------------------------------
 ; STAIR
@@ -1127,7 +1280,7 @@
 
 
 (defun c:STAIR (/ bp ep runDir height risers rise tread cmd done ncmd nx ny dia dims 
-                tcmd tv tdone
+                tcmd tv tdone rcmd
                ) 
   (defun *error* (msg) 
 
@@ -1447,11 +1600,52 @@
                )
               )
               ;; Accept
+              ;; Accept
+
               ((= cmd "Accept")
-               ;; Promote preview to final geometry
-               (setq *stair-preview* nil)
-               (stair:final-report)
-               (setq done T)
+
+                ;; Promote preview to final geometry
+
+                (setq *stair-preview* nil)
+
+                (stair:final-report)
+
+                (initget "Yes No")
+
+                (setq rcmd
+
+                  (getkword
+
+                    (strcat
+
+                      "\nCreate text report? [Yes/No] <"
+
+                      *stair-report-mtext*
+
+                      ">: "
+                    )
+                  )
+                )
+
+                ;; Use previous choice as default
+
+                (if (null rcmd)
+
+                  (setq rcmd *stair-report-mtext*)
+                )
+
+                ;; Remember user preference
+
+                (setq *stair-report-mtext* rcmd)
+
+                ;; Create MTEXT if requested
+
+                (if (= rcmd "Yes")
+
+                  (stair:create-report-mtext)
+                )
+
+                (setq done T)
               )
 
               ;; Cancel
@@ -1506,5 +1700,5 @@
 ;------------------------------------------------------------
  
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(princ "\nSTAIR 044 - final report. Type STAIR to start.")
+(princ "\nSTAIR 045 - Mtext final report. Type STAIR to start.")
 (princ)
