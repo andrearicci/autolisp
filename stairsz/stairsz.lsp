@@ -1,7 +1,7 @@
 (vl-load-com)
 
 ;------------------------------------------------------------
-; STAIR 042B-Part5E - Tread & Nosing Stable -UCS fixed
+; STAIR 043 UCS Independent Stable
 
 
 
@@ -261,33 +261,24 @@
 ; Refresh preview
 ;------------------------------------------------------------
 
-(defun stair:refresh-preview (/)
+(defun stair:refresh-preview (/) 
 
-  (if
+  (if 
 
-    (and
+    (and 
 
       *stair-bp*
 
       (> *stair-risers* 1)
     )
 
-    (progn
+    (progn 
 
-      (stair:update-preview
-
-        *stair-bp*
-
-        *stair-risers*
-
-        *stair-rise*
-
-        *stair-tread*
-
-        *stair-rundir*
+      (stair:update-preview *stair-bp* *stair-risers* *stair-rise* *stair-tread* 
+                            *stair-rundir*
       )
 
-      (stair:preview-report
+      (stair:preview-report 
 
         *stair-height*
 
@@ -759,73 +750,56 @@
 ; (setq *stair-nosing-x* (stair:default-square-x))
 ; (setq *stair-nosing-y* (stair:default-square-y))
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; 
-(defun stair:update-preview (basePt risers rise tread runDir / geom)
+(defun stair:update-preview (basePt risers rise tread runDir / geom) 
 
   (stair:delete-preview)
 
   ;; Build geometry in local UCS coordinates
 
-  (setq geom
-
-    (stair:build-geometry
-
-      risers
-      rise
-      tread
-      runDir
-
-      *stair-nosing-type*
-      *stair-nosing-x*
-      *stair-nosing-y*
-    )
+  (setq geom (stair:build-geometry risers rise tread runDir *stair-nosing-type* 
+                                   *stair-nosing-x* *stair-nosing-y*
+             )
   )
 
   ;; Translate geometry from local stair coordinates
   ;; to UCS coordinates based on picked base point,
   ;; then convert UCS -> WCS before creating polyline.
 
-  (setq geom
+  (setq geom (mapcar 
 
-    (mapcar
+               '(lambda (v / pt) 
 
-      '(lambda (v / pt)
+                  (setq pt (list 
 
-         (setq pt
+                             (+ (car basePt) 
+                                (car (car v))
+                             )
 
-           (list
+                             (+ (cadr basePt) 
+                                (cadr (car v))
+                             )
 
-             (+ (car basePt)
-                (car (car v))
+                             0.0
+                           )
+                  )
+
+                  ;; UCS -> WCS transformation
+
+                  (setq pt (trans pt 1 0))
+
+                  (list 
+
+                    pt
+
+                    (cadr v)
+                  )
+                )
+
+               geom
              )
-
-             (+ (cadr basePt)
-                (cadr (car v))
-             )
-
-             0.0
-           )
-         )
-
-         ;; UCS -> WCS transformation
-
-         (setq pt (trans pt 1 0))
-
-         (list
-
-           pt
-
-           (cadr v)
-         )
-       )
-
-      geom
-    )
   )
 
-  (setq *stair-preview*
-
-    (stair:create-polyline geom)
-  )
+  (setq *stair-preview* (stair:create-polyline geom))
 
   (princ)
 )
@@ -994,11 +968,11 @@
 
       " | Tread "
 
-      (if (= *stair-mode* "ERGONOMIC")
+      (if (= *stair-mode* "ERGONOMIC") 
 
         "ERGONOMIC"
 
-        (strcat
+        (strcat 
 
           "FIXED ("
 
@@ -1022,28 +996,25 @@
 ;------------------------------------------------------------
 
 
-(defun c:STAIR
-  (/ bp ep runDir height risers rise tread
-     cmd done
-     ncmd nx ny dia dims
-     tcmd tv tdone
-    )
-(defun *error* (msg)
+(defun c:STAIR (/ bp ep runDir height risers rise tread cmd done ncmd nx ny dia dims 
+                tcmd tv tdone
+               ) 
+  (defun *error* (msg) 
 
-  (if
-    (and msg
-         (not (wcmatch (strcase msg) "*CANCEL*,*QUIT*"))
-    )
-    (prompt
-      (strcat
-        "\nError: "
-        msg
+    (if 
+      (and msg 
+           (not (wcmatch (strcase msg) "*CANCEL*,*QUIT*"))
+      )
+      (prompt 
+        (strcat 
+          "\nError: "
+          msg
+        )
       )
     )
-  )
 
-  (princ)
-)
+    (princ)
+  )
   (setq bp (getpoint 
              "\nBase point: "
            )
@@ -1135,269 +1106,230 @@
 
           (while (not done) 
 
-          (initget "+ - T N A C")
+            (initget "Add Remove Tread Nosing Accept Cancel")
+            (setq cmd (getkword "\n[Add/Remove/Tread/Nosing/Accept/Cancel] <Accept>: "))
 
-          (setq cmd (getkword
-
-                      "\n[+/-/T/N/A/C] <A>: "
-                    )
-          )
-
-            (if (null cmd) 
-              (setq cmd "A")
-            )
+(if (null cmd) (setq cmd "Accept") )
 
             (cond 
 
 
               ;; Tread submenu
 
-              ((= cmd "T")
+              ((= cmd "Tread")
 
-                (setq tdone nil)
+               (setq tdone nil)
 
-                (while (not tdone)
+               (while (not tdone) 
 
-                  (initget "Value Ergonomic Accept")
+                 (initget "Value Ergonomic Accept")
 
-                  (setq tcmd
+                 (setq tcmd (getkword 
 
-                    (getkword
+                              "\nTread [Value/Ergonomic/Accept] <Accept>: "
+                            )
+                 )
 
-                      "\nTread [Value/Ergonomic/Accept] <Accept>: "
+                 (if (null tcmd) 
+                   (setq tcmd "Accept")
+                 )
+
+                 (cond 
+
+                   ;; Value
+
+                   ((= tcmd "Value")
+
+                    (setq tv (getreal 
+
+                               (strcat 
+
+                                 "\nTread value <"
+
+                                 (stair:f2 *stair-fixed-tread*)
+
+                                 ">: "
+                               )
+                             )
                     )
-                  )
 
-                  (if (null tcmd)
-                    (setq tcmd "Accept")
-                  )
+                    (if (and tv (> tv 0.0)) 
 
-                  (cond
+                      (progn 
 
-                    ;; Value
+                        (setq *stair-fixed-tread* tv)
 
-                    ((= tcmd "Value")
+                        (setq *stair-mode* "FIXEDTREAD")
 
-                      (setq tv
+                        (stair:recompute)
 
-                        (getreal
-
-                          (strcat
-
-                            "\nTread value <"
-
-                            (stair:f2 *stair-fixed-tread*)
-
-                            ">: "
-                          )
-                        )
+                        (stair:refresh-preview)
                       )
 
-                      (if
+                      (if tv 
 
-                        (and tv (> tv 0.0))
-
-                        (progn
-
-                          (setq *stair-fixed-tread* tv)
-
-                          (setq *stair-mode* "FIXEDTREAD")
-
-                          (stair:recompute)
-
-                          (stair:refresh-preview)
-                        )
-
-                        (if tv
-
-                          (prompt "\nInvalid tread value.")
-                        )
+                        (prompt "\nInvalid tread value.")
                       )
                     )
+                   )
 
-                    ;; Ergonomic
+                   ;; Ergonomic
 
-                    ((= tcmd "Ergonomic")
+                   ((= tcmd "Ergonomic")
 
-                      (setq *stair-mode* "ERGONOMIC")
+                    (setq *stair-mode* "ERGONOMIC")
 
-                      (stair:recompute)
+                    (stair:recompute)
 
-                      (stair:refresh-preview)
-                    )
+                    (stair:refresh-preview)
+                   )
 
-                    ;; Accept
+                   ;; Accept
 
-                    ((= tcmd "Accept")
+                   ((= tcmd "Accept")
 
-                      (setq tdone T)
-                    )
-                  )
-                )
+                    (setq tdone T)
+                   )
+                 )
+               )
               )
               ;; Nosing
 
-              ((= cmd "N")
+              ((= cmd "Nosing")
 
-                (initget "None Square Round Cancel")
+               (initget "None Square Round Cancel")
 
-                (setq ncmd
+               (setq ncmd (getkword 
 
-                  (getkword
+                            (strcat 
 
-                    (strcat
+                              "\nNosing [None/Square/Round/Cancel] <Cancel>: "
+                            )
+                          )
+               )
 
-                      "\nNosing [None/Square/Round/Cancel] <Cancel>: "
-                    )
-                  )
-                )
+               (cond 
 
-                (cond
+                 ;; Cancel
 
-                  ;; Cancel
+                 ((or 
 
-                  ((or
+                    (null ncmd)
 
-                     (null ncmd)
-
-                     (= ncmd "Cancel")
-                   )
-
-                   (princ)
+                    (= ncmd "Cancel")
                   )
 
-                  ;; NONE
+                  (princ)
+                 )
 
-                  ((= ncmd "None")
+                 ;; NONE
 
-                    (setq *stair-nosing-type* "NONE")
+                 ((= ncmd "None")
 
-                    (stair:refresh-preview)
+                  (setq *stair-nosing-type* "NONE")
+
+                  (stair:refresh-preview)
+                 )
+
+                 ;; SQUARE
+
+                 ((= ncmd "Square")
+
+                  (setq nx (getreal 
+
+                             (strcat 
+
+                               "\nNosing X <"
+
+                               (stair:f2 *stair-nosing-x*)
+
+                               ">: "
+                             )
+                           )
                   )
 
-                  ;; SQUARE
-
-                  ((= ncmd "Square")
-
-                    (setq nx
-
-                      (getreal
-
-                        (strcat
-
-                          "\nNosing X <"
-
-                          (stair:f2 *stair-nosing-x*)
-
-                          ">: "
-                        )
-                      )
-                    )
-
-                    (if (null nx)
-                      (setq nx *stair-nosing-x*)
-                    )
-
-                    (setq ny
-
-                      (getreal
-
-                        (strcat
-
-                          "\nNosing Y <"
-
-                          (stair:f2 *stair-nosing-y*)
-
-                          ">: "
-                        )
-                      )
-                    )
-
-                    (if (null ny)
-                      (setq ny *stair-nosing-y*)
-                    )
-
-                    (setq dims
-
-                      (stair:clamp-nosing
-
-                        *stair-rise*
-                        *stair-tread*
-
-                        "SQUARE"
-
-                        nx
-                        ny
-                      )
-                    )
-
-                    (setq *stair-nosing-type* "SQUARE")
-
-                    (setq *stair-nosing-x* (car dims))
-                    (setq *stair-nosing-y* (cadr dims))
-
-                    (stair:refresh-preview)
+                  (if (null nx) 
+                    (setq nx *stair-nosing-x*)
                   )
 
-                  ;; ROUND
+                  (setq ny (getreal 
 
-                  ((= ncmd "Round")
+                             (strcat 
 
-                    (setq dia
+                               "\nNosing Y <"
 
-                      (getreal
+                               (stair:f2 *stair-nosing-y*)
 
-                        (strcat
-
-                          "\nDiameter <"
-
-                          (stair:f2 *stair-nosing-y*)
-
-                          ">: "
-                        )
-                      )
-                    )
-
-                    (if (null dia)
-                      (setq dia *stair-nosing-y*)
-                    )
-
-                    (setq dims
-
-                      (stair:clamp-nosing
-
-                        *stair-rise*
-                        *stair-tread*
-
-                        "ROUND"
-
-                        0.0
-                        dia
-                      )
-                    )
-
-                    (setq *stair-nosing-type* "ROUND")
-
-                    (setq *stair-nosing-y* (cadr dims))
-
-                    (stair:refresh-preview)
+                               ">: "
+                             )
+                           )
                   )
-                )
+
+                  (if (null ny) 
+                    (setq ny *stair-nosing-y*)
+                  )
+
+                  (setq dims (stair:clamp-nosing *stair-rise* *stair-tread* "SQUARE" 
+                                                 nx ny
+                             )
+                  )
+
+                  (setq *stair-nosing-type* "SQUARE")
+
+                  (setq *stair-nosing-x* (car dims))
+                  (setq *stair-nosing-y* (cadr dims))
+
+                  (stair:refresh-preview)
+                 )
+
+                 ;; ROUND
+
+                 ((= ncmd "Round")
+
+                  (setq dia (getreal 
+
+                              (strcat 
+
+                                "\nDiameter <"
+
+                                (stair:f2 *stair-nosing-y*)
+
+                                ">: "
+                              )
+                            )
+                  )
+
+                  (if (null dia) 
+                    (setq dia *stair-nosing-y*)
+                  )
+
+                  (setq dims (stair:clamp-nosing *stair-rise* *stair-tread* "ROUND" 
+                                                 0.0 dia
+                             )
+                  )
+
+                  (setq *stair-nosing-type* "ROUND")
+
+                  (setq *stair-nosing-y* (cadr dims))
+
+                  (stair:refresh-preview)
+                 )
+               )
               )
               ;; Accept
-((= cmd "A")
+              ((= cmd "Accept")
 
-  ;; Promote preview to final geometry
+               ;; Promote preview to final geometry
 
-  (setq *stair-preview* nil)
+               (setq *stair-preview* nil)
 
-  (setq done T)
-)
+               (setq done T)
+              )
 
 
               ;; Cancel
 
-              ((= cmd "C")
+              ((= cmd "Cancel")
 
                (stair:delete-preview)
 
@@ -1406,7 +1338,7 @@
 
               ;; Add riser
 
-              ((= cmd "+")
+              ((= cmd "Add")
 
                (setq *stair-risers* (1+ *stair-risers*))
 
@@ -1417,7 +1349,7 @@
 
               ;; Remove riser
 
-              ((= cmd "-")
+              ((= cmd "Remove")
 
                (if (> *stair-risers* 2) 
 
@@ -1447,5 +1379,5 @@
 ;------------------------------------------------------------
  
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(princ "\nSTAIR 042B-Part5E- UCS fixed. Type STAIR to start.")
+(princ "\nSTAIR 043 UCS Independent Stable. Type STAIR to start.")
 (princ)
