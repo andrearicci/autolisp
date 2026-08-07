@@ -1,7 +1,7 @@
 (vl-load-com)
 
 ;------------------------------------------------------------
-; STAIR 042B-Part5D-Nosing 
+; STAIR 042B-Part5D - Tread & Nosing Stable
 
 ;da fare - sistemare personalizzazione tread
 
@@ -939,8 +939,21 @@
         )
       )
 
-      " | Mode "
-      *stair-mode*
+      " | Tread "
+
+      (if (= *stair-mode* "ERGONOMIC")
+
+        "ERGONOMIC"
+
+        (strcat
+
+          "FIXED ("
+
+          (stair:f2 *stair-fixed-tread*)
+
+          ")"
+        )
+      )
 
       " | Nosing "
       *stair-nosing-type*
@@ -960,6 +973,7 @@
   (/ bp ep runDir height risers rise tread
      cmd done
      ncmd nx ny dia dims
+     tcmd tv tdone
     )
 
   (setq bp (getpoint 
@@ -1053,11 +1067,11 @@
 
           (while (not done) 
 
-          (initget "+ - N A C")
+          (initget "+ - T N A C")
 
           (setq cmd (getkword
 
-                      "\n[+/-/N/A/C] <A>:"
+                      "\n[+/-/T/N/A/C] <A>: "
                     )
           )
 
@@ -1066,6 +1080,84 @@
             )
 
             (cond 
+                            ;; Tread submenu
+
+              ((= cmd "T")
+
+                (setq tdone nil)
+
+                (while (not tdone)
+
+                  (initget "Value Ergonomic Accept")
+
+                  (setq tcmd
+
+                    (getkword
+
+                      "\nTread [Value/Ergonomic/Accept] <Accept>: "
+                    )
+                  )
+
+                  (if (null tcmd)
+                    (setq tcmd "Accept")
+                  )
+
+                  (cond
+
+                    ;; Value
+
+                    ((= tcmd "Value")
+
+                      (setq tv
+
+                        (getreal
+
+                          (strcat
+
+                            "\nTread value <"
+
+                            (stair:f2 *stair-fixed-tread*)
+
+                            ">: "
+                          )
+                        )
+                      )
+
+                      (if tv
+
+                        (progn
+
+                          (setq *stair-fixed-tread* tv)
+
+                          (setq *stair-mode* "FIXEDTREAD")
+
+                          (stair:recompute)
+
+                          (stair:refresh-preview)
+                        )
+                      )
+                    )
+
+                    ;; Ergonomic
+
+                    ((= tcmd "Ergonomic")
+
+                      (setq *stair-mode* "ERGONOMIC")
+
+                      (stair:recompute)
+
+                      (stair:refresh-preview)
+                    )
+
+                    ;; Accept
+
+                    ((= tcmd "Accept")
+
+                      (setq tdone T)
+                    )
+                  )
+                )
+              )
               ;; Nosing
 
               ((= cmd "N")
@@ -1278,5 +1370,5 @@
 ;------------------------------------------------------------
  
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(princ "\nSTAIR 042B-Part5D-Nosing loaded. Type STAIR to start.")
+(princ "\nSTAIR 042B-Part5D- Tread & Nosing Stable. Type STAIR to start.")
 (princ)
