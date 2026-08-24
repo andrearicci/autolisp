@@ -10,8 +10,7 @@
 ;  ✅ Final report su command line
 ;  ✅ Accept / Cancel
 ;  ✅ MTEXT report
-;  ✅ added constrained mode (from A to B)
-; da sistemare: quando cambio il tread da una modalità all'altra non mi prende il valore di default (vecchio) premendo invio, se non lo digito
+;  ✅ added FIT (constrained) mode (from A to B)
 ;
 ; Stair section generator
 ;
@@ -34,33 +33,7 @@
 ;;; Author: Andrea Ricci
 ;;; Version: xxx
 ;;;;;;;;;;;;;;;; da incollare in copilot per ricominciare
-; ;Progetto: STAIR
-; Versione corrente:
-; STAIR 042B Part 5A
-; Stato:
-; ✓ Geometry Engine frozen
-; ✓ NONE validated
-; ✓ SQUARE validated
-; ✓ ROUND validated
-; ✓ INSUNITS validated
-; ✓ Height = ΔY
-; ✓ Direction = ΔX
-; ✓ Preview report validated
-; ✓ Accept promotes preview to final geometry
-; ✓ Correction loop + - A C funzionante
-; Roadmap:
-; 042B Part 5B
-; E
-; F
-; 042B Part 5C
-; N
-; 042B Part 6
-; Accept + Report
-; 042C
-; MTEXT
-; 043
-; UCS Independent
-; Incollerò il codice corrente se necessario.
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;------------------------------------------------------------
 ; STAIR - USER GUIDE

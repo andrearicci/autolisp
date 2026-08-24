@@ -1,0 +1,128 @@
+PROGETTO: STAIR
+
+Versione corrente:
+STAIR 046A - Production Ready
+
+Stato attuale:
+✓ Geometry Engine stabile
+✓ UCS Independent
+✓ Preview > Accept
+✓ Nosing NONE / SQUARE / ROUND
+✓ Tread ERGONOMIC / FIXEDTREAD / CONSTRAINED
+✓ Final report
+✓ MTEXT report
+✓ Default tread fix implementato
+✓ Preview report corretto per CONSTRAINED
+✓ Protezione divisione per zero implementata
+✓ Debug rimossi
+
+Nuova feature da implementare:
+LANDINGS (Pianerottoli)
+
+Obiettivo:
+Consentire uno o più pianerottoli intermedi nella sezione della scala.
+
+Comportamento desiderato:
+
+Dopo la selezione dei due punti:
+
+Base point:
+Arrival point:
+
+la routine deve permettere di definire uno o più pianerottoli.
+
+Struttura dati preferita:
+
+(setq *stair-landings*
+  '(
+     (5 120.0)
+     (12 150.0)
+   )
+)
+
+dove:
+
+(5 120.0)
+= pianerottolo lungo 120 dopo la 5a alzata
+
+(12 150.0)
+= pianerottolo lungo 150 dopo la 12a alzata
+
+Menu desiderato:
+
+Landings [Add/Remove/List/Clear/Accept]
+
+Add:
+- chiede numero alzata
+- chiede lunghezza pianerottolo
+- aggiunge alla lista
+
+Remove:
+- elimina un pianerottolo
+
+List:
+- mostra l'elenco attuale
+
+Clear:
+- elimina tutti i pianerottoli
+
+Accept:
+- esce dal submenu
+
+Geometry Engine:
+
+Durante il ciclo di costruzione dei gradini:
+
+- dopo l'alzata specificata
+- inserire un tratto orizzontale aggiuntivo
+- lungo landingLength
+
+Il pianerottolo deve essere trattato come una pedata speciale.
+
+Compatibilità CONSTRAINED:
+
+Attualmente:
+
+tread = totalRun / (risers - 1)
+
+Con i pianerottoli:
+
+usableRun =
+totalRun
+-
+(sum landing lengths)
+
+tread =
+usableRun
+/
+(risers - 1)
+
+Quindi in modalità CONSTRAINED la somma dei pianerottoli deve essere sottratta dal run disponibile.
+
+Requisiti:
+
+- supportare più pianerottoli
+- mantenere compatibilità UCS Independent
+- aggiornare Preview
+- aggiornare Final Report
+- aggiornare MTEXT Report
+- mantenere compatibilità con NONE / SQUARE / ROUND
+
+Approccio preferito:
+
+Implementazione in 3 fasi:
+
+FASE 1
+- struttura dati
+- submenu Landings
+- Add/List/Clear
+
+FASE 2
+- integrazione Geometry Engine
+
+FASE 3
+- integrazione modalità CONSTRAINED
+- report e MTEXT
+
+Prima di scrivere codice:
+analizzare l'attuale STAIR 046A e proporre le modifiche architetturali minime per inserire i pianerottoli senza riscrivere il Geometry Engine.

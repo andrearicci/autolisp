@@ -1,202 +1,230 @@
-042A
-Geometry Prototype
+# STAIR 046A - Production Ready
 
-042B Part 1
-Geometry Engine
+## Ultimo commit
 
-042B Part 2
-Nosing Clamp
+`STAIR 046A - Production Ready`
 
-042B Part 3A
-INSUNITS Constants
+## Stato attuale
 
-042B Part 3B
-Height
-Proposed Risers
-Ergonomic Tread
+### Geometria
 
-042B Part 4
-Base Point
-Arrival Point
-Preview
+- Geometry Engine stabile
+- NONE
+- SQUARE
+- ROUND
+- UCS Independent
+- Preview corretta
+- Accept promuove la preview a geometria finale
 
-042B Part 5
-Correction Loop
-[E/F/+/-/N/A/C]
+### Tread
 
-042B Part 6
-Accept
-Report
+Modalità disponibili:
 
-042C
-MTEXT
+- ERGONOMIC
+- FIXEDTREAD
+- FIT
 
-043
-UCS Independent
-
-STAIR 046 - Constrained Mode
-Ultimo commit
-STAIR 046 - Constrained Mode
-
-Stato attuale
-Geometria
-✅ Geometry Engine stabile
-✅ NONE
-✅ SQUARE
-✅ ROUND
-✅ UCS Independent
-✅ Preview corretta
-✅ Accept promuove la preview a geometria finale
-Tread
-✅ ERGONOMIC
-✅ FIXEDTREAD
-✅ CONSTRAINED
-Modalità disponibili nel submenu:
-Tread [Value/Ergonomic/Constrained/Accept]
-
-Nosing
-✅ NONE
-✅ SQUARE
-✅ ROUND
 Menu:
-Nosing [None/Square/Round/Cancel]
 
-Report
-✅ Preview report
-✅ Final report
-✅ MTEXT report
+`Tread [Value/Ergonomic/Fit/Accept]`
+
+### Nosing
+
+Modalità disponibili:
+
+- NONE
+- SQUARE
+- ROUND
+
+Menu:
+
+`Nosing [None/Square/Round/Cancel]`
+
+### Report
+
+- Preview report
+- Final report
+- MTEXT report
+
 Contenuto:
-Height = xx
 
-Run = xx
+- Height = xx
+- Run = xx
+- x risers of xxx
+- x treads of xxx
+- 2R+T = xx
+- Angle = xx°
 
-x risers of xxx
+### MTEXT
 
-x treads of xxx
+- Posizione automatica
+- UCS aligned
+- Height = rise / 3
+- Ricorda preferenza Yes/No
+- Inserimento sopra ultimo gradino
+- Offset automatico:
 
-2R+T = xx
+`rise/2 + 6 * txtHeight + rise`
 
-Angle = xx°
+## Menu principale
 
-MTEXT
-✅ Posizione automatica
-✅ UCS aligned
-✅ Height = rise/3
-✅ Ricorda preferenza Yes/No
-✅ Inserimento sopra ultimo gradino
-✅ Sollevato di:
-rise/2
-+ 6 * txtHeight
-+ rise
-
-Menu principale
-Attuale:
-[+/-/Tread/Nosing/Accept/Exit] <Accept>
+`[+/-/Tread/Nosing/Accept/Exit] <Accept>`
 
 Initget:
-Lisp
-1
+
+```lisp
 (initget "+ - Tread Nosing Accept Exit")
-2
-``
-Mostra più linee
-Constrained
+```
+
+## FIT Mode
+
 Implementato.
+
 Formula:
-tread =
-  totalRun
-  /
-  (risers - 1)
+
+`tread = totalRun / (risers - 1)`
 
 dove:
-totalRun =
-  abs(ep.x - bp.x)
+
+`totalRun = abs(ep.x - bp.x)`
 
 memorizzato in:
-Lisp
-1
+
+```lisp
 *stair-total-run*
-Mostra più linee
-Nuova modalità:
-Lisp
-1
-"CONSTRAINED"
-Mostra più linee
-TODO immediato
-Bug noto
-Nel submenu Tread.
-Caso:
-Value
+```
 
-visualizza:
-Tread value <0.30>
+La distanza orizzontale tra Base Point e Arrival Point viene considerata vincolante.
 
-ma se premi:
-ENTER
+Il tread viene ricalcolato automaticamente per fare coincidere l'ultimo gradino con il punto di arrivo.
 
-non usa il valore di default.
-Da correggere.
-Logica desiderata:
-Plain Text
-1
-ENTER
-2
-=
-3
-ultimo valore memorizzato
-Mostra più linee
-quindi:
-Lisp
-1
-(if (null tv)
-2
- 
-3
-(setq tv *stair-fixed-tread*)
-4
-)
-Mostra più linee
-prima della validazione.
-Changelog completo
-042B-Part5A
-State infrastructure
-Recompute
-Refresh preview
-042B-Part5C
-Nosing submenu
-NONE
-SQUARE
-ROUND
-043
-UCS Independent
-044
-Final command-line report
-Tread submenu
-Fixed tread mode
-045
-MTEXT Final Report
-UCS aligned
-Remember Yes/No preference
-046
-Constrained Mode
-Run constrained to picked points
-Tread auto-calculated
-Constrained moved into Tread submenu
-Idee future (non prioritarie)
-047 Hardening
-error handler più robusto
-pulizia debug
-centralizzazione descrizioni tread/nosing
-centralizzazione report
-Possibili verifiche
-UCS ruotato 90°
-UCS con asse invertito
-scale molto piccole
-scale molto grandi
-tread count = 1 (protezione)
-Nota personale
-La prossima volta partirei da:
-Correggere il default della voce "Value" nel submenu Tread
-perché è l'unico difetto funzionale ancora noto.
-Per il resto STAIR è ormai in una versione che considero utilizzabile in produzione. 🚀
-Fornisci il tuo feedback su BizChat
+## Comportamento del comando
+
+### Value
+
+Permette di impostare un valore fisso del tread.
+
+Prompt:
+
+`Tread value <last value>:`
+
+Premendo ENTER viene riutilizzato l'ultimo valore memorizzato.
+
+### Ergonomic
+
+Calcolo automatico secondo la formula:
+
+`2R + T = 63 cm`
+
+(convertita automaticamente nelle unità correnti del disegno).
+
+### Fit
+
+Calcolo automatico del tread in funzione della distanza orizzontale tra il punto di partenza e il punto di arrivo.
+
+Formula:
+
+`tread = totalRun / treadCount`
+
+dove:
+
+`treadCount = risers - 1`
+
+## Changelog
+
+### 042B-Part5A
+
+- State infrastructure
+- Recompute
+- Refresh preview
+
+### 042B-Part5C
+
+- Nosing submenu
+- NONE
+- SQUARE
+- ROUND
+
+### 043
+
+- UCS Independent
+
+### 044
+
+- Final command-line report
+- Tread submenu
+- Fixed Tread mode
+
+### 045
+
+- MTEXT Final Report
+- UCS aligned
+- Remember Yes/No preference
+
+### 046
+
+- Fit Mode
+- Run constrained to picked points
+- Tread auto-calculated
+- Fit option added to Tread submenu
+
+### 046A
+
+- Production cleanup
+- Debug output removed
+- Preview report updated for FIT mode
+- Internal-only helper functions
+- STAIRINFO removed
+- STAIRCALC removed
+
+## Comandi pubblici
+
+`STAIR`
+
+## Verifiche completate
+
+- UCS World
+- UCS ruotato
+- Direzione sinistra/destra
+- NONE
+- SQUARE
+- ROUND
+- ERGONOMIC
+- FIXEDTREAD
+- FIT
+- Preview update
+- Accept
+- MTEXT UCS aligned
+- INSUNITS conversion
+
+## Roadmap futura
+
+### 047 Hardening
+
+- Error handler più robusto
+- Centralizzazione descrizioni tread
+- Centralizzazione descrizioni nosing
+- Centralizzazione report
+- Protezione divisione per zero in FIT
+- Variabile globale `*stair-debug*`
+- Pulizia commenti storici
+
+### Test consigliati
+
+- UCS ruotato 90°
+- UCS con asse invertito
+- Scale molto piccole
+- Scale molto grandi
+- Tread count = 1
+- FIT con run molto ridotto
+- FIT con run molto elevato
+
+## Nota per la prossima sessione
+
+Verificare e correggere definitivamente il comportamento di default della voce:
+
+`Tread > Value`
+
+per garantire che ENTER utilizzi sempre l'ultimo valore memorizzato.
+
+Per il resto STAIR è attualmente utilizzabile in produzione.
