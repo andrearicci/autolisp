@@ -261,39 +261,22 @@
 
      (setq *stair-tread* *stair-fixed-tread*)
     )
-    ;;;; debug
     ((= *stair-mode* "CONSTRAINED")
 
-  (prompt
-    (strcat
-      "\nRUN="
-      (rtos *stair-total-run* 2 3)
-    )
-  )
+     (if (> (stair:tread-count *stair-risers*) 0) 
 
-  (setq *stair-tread*
+       (setq *stair-tread* (/ 
+                             *stair-total-run*
 
-    (/ *stair-total-run*
-
-       (stair:tread-count
-         *stair-risers*
+                             (stair:tread-count 
+                               *stair-risers*
+                             )
+                           )
        )
+
+       (setq *stair-tread* 0.0)
+     )
     )
-  )
-)
-    ;;;; end debug
-    ; ((= *stair-mode* "CONSTRAINED")
-
-    ;     (setq *stair-tread*
-
-    ;       (/ *stair-total-run*
-
-    ;         (stair:tread-count
-    ;           *stair-risers*
-    ;         )
-    ;       )
-    ;     )
-    ;   )
   )
 
   (princ)
@@ -550,18 +533,7 @@
   (setq x 0.0)
   (setq y 0.0)
 
-  ;; Debug
 
-  (prompt 
-    (strcat 
-      "\nRISERS="
-      (itoa risers)
-      " RISE="
-      (stair:f2 rise)
-      " TREAD="
-      (stair:f2 tread)
-    )
-  )
 
   ;; Main stair profile
 
@@ -718,22 +690,7 @@
     )
   )
 
-  ;; Debug dump
 
-  (foreach v pts 
-
-    (prompt 
-
-      (strcat 
-
-        "\nX="
-        (rtos (car (car v)) 2 3)
-
-        " Y="
-        (rtos (cadr (car v)) 2 3)
-      )
-    )
-  )
 
   pts
 )
@@ -784,13 +741,7 @@
 ; Preview creation
 ;------------------------------------------------------------
 
-;;;;;;;;debug squareround roundsquare ;;;;;;;;;;
-; (setq *stair-nosing-type* "ROUND")
-; (setq *stair-nosing-y* (stair:default-round-dia))
-; (setq *stair-nosing-type* "SQUARE")
-; (setq *stair-nosing-x* (stair:default-square-x))
-; (setq *stair-nosing-y* (stair:default-square-y))
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; 
+
 (defun stair:update-preview (basePt risers rise tread runDir / geom) 
 
   (stair:delete-preview)
@@ -891,24 +842,16 @@
         (progn 
 
           (setq height (stair:get-height bp ep))
-          
-          (setq *stair-total-run*
 
-            (abs
+          (setq *stair-total-run* (abs 
 
-              (- (car ep)
+                                    (- (car ep) 
 
-                (car bp)
-              )
-            )
+                                       (car bp)
+                                    )
+                                  )
           )
-          ;;;; debug
-          (prompt
-  (strcat
-    "\nTOTAL RUN="
-    (rtos *stair-total-run* 2 3)
-  )
-)
+
 
           (setq risers (stair:propose-risers height))
 
@@ -1027,19 +970,29 @@
 
       " | Tread "
 
-      (if (= *stair-mode* "ERGONOMIC") 
+      (cond 
 
-        "ERGONOMIC"
+        ((= *stair-mode* "ERGONOMIC")
+         "ERGONOMIC"
+        )
 
-        (strcat 
+        ((= *stair-mode* "FIXEDTREAD")
+         (strcat 
+           "FIXED ("
+           (stair:f2 *stair-fixed-tread*)
+           ")"
+         )
+        )
 
-          "FIXED ("
+        ((= *stair-mode* "CONSTRAINED")
+         "CONSTRAINED"
+        )
 
-          (stair:f2 *stair-fixed-tread*)
-
-          ")"
+        (T
+         *stair-mode*
         )
       )
+      ``
 
       " | Nosing "
       *stair-nosing-type*
@@ -1057,38 +1010,36 @@
 
   ;; Tread description
 
-(setq treadDesc
+  (setq treadDesc (cond 
 
-  (cond
+                    ((= *stair-mode* "ERGONOMIC")
 
-    ((= *stair-mode* "ERGONOMIC")
+                     "ERGONOMIC"
+                    )
 
-      "ERGONOMIC"
-    )
+                    ((= *stair-mode* "FIXEDTREAD")
 
-    ((= *stair-mode* "FIXEDTREAD")
+                     (strcat 
 
-      (strcat
+                       "FIXED ("
 
-        "FIXED ("
+                       (stair:f2 *stair-fixed-tread*)
 
-        (stair:f2 *stair-fixed-tread*)
+                       ")"
+                     )
+                    )
 
-        ")"
-      )
-    )
+                    ((= *stair-mode* "CONSTRAINED")
 
-    ((= *stair-mode* "CONSTRAINED")
+                     "CONSTRAINED"
+                    )
 
-      "CONSTRAINED"
-    )
+                    (T
 
-    (T
-
-      *stair-mode*
-    )
+                     *stair-mode*
+                    )
+                  )
   )
-)
 
 
   ;; Nosing description
@@ -1200,136 +1151,126 @@
 ;------------------------------------------------------------ 
 ; MTEXT report 
 ;------------------------------------------------------------
-(defun stair:create-report-mtext
-  (/ run ang txt txtHeight insPt rot obj)
+(defun stair:create-report-mtext (/ run ang txt txtHeight insPt rot obj) 
 
   (vl-load-com)
 
   ;; Total run
 
-  (setq run
-    (stair:total-run
-      *stair-risers*
-      *stair-tread*
-    )
+  (setq run (stair:total-run 
+              *stair-risers*
+              *stair-tread*
+            )
   )
 
   ;; Stair angle in degrees
 
-  (setq ang
-    (*
-      180.0
-      (/ (atan (/ *stair-height* run))
-         pi
-      )
-    )
+  (setq ang (* 
+              180.0
+              (/ 
+                (atan (/ *stair-height* run))
+                pi
+              )
+            )
   )
 
   ;; Text height
 
-  (setq txtHeight
-    (/ *stair-rise* 3.0)
-  )
+  (setq txtHeight (/ *stair-rise* 3.0))
 
   ;; MTEXT contents
 
-  (setq txt
-    (strcat
+  (setq txt (strcat 
 
-      "Height = "
-      (stair:f2 *stair-height*)
+              "Height = "
+              (stair:f2 *stair-height*)
 
-      "\\P"
+              "\\P"
 
-      "Run = "
-      (stair:f2 run)
+              "Run = "
+              (stair:f2 run)
 
-      "\\P"
+              "\\P"
 
-      (itoa *stair-risers*)
-      " risers of "
-      (stair:f2 *stair-rise*)
+              (itoa *stair-risers*)
+              " risers of "
+              (stair:f2 *stair-rise*)
 
-      "\\P"
+              "\\P"
 
-      (itoa
-        (stair:tread-count *stair-risers*)
-      )
-      " treads of "
-      (stair:f2 *stair-tread*)
+              (itoa 
+                (stair:tread-count *stair-risers*)
+              )
+              " treads of "
+              (stair:f2 *stair-tread*)
 
-      "\\P"
+              "\\P"
 
-      "2R+T = "
-      (stair:f2
-        (+
-          (* 2.0 *stair-rise*)
-          *stair-tread*
-        )
-      )
+              "2R+T = "
+              (stair:f2 
+                (+ 
+                  (* 2.0 *stair-rise*)
+                  *stair-tread*
+                )
+              )
 
-      "\\P"
+              "\\P"
 
-      "Angle = "
-      (rtos ang 2 1)
-      "\\U+00B0" ;; "°"
-    )
+              "Angle = "
+              (rtos ang 2 1)
+              "\\U+00B0" ;; "°"
+            )
   )
 
   ;; Insertion point in UCS
 
-  (setq insPt
-    (list
+  (setq insPt (list 
 
-      (+ (car *stair-bp*)
-         (* *stair-rundir* run)
-      )
+                (+ (car *stair-bp*) 
+                   (* *stair-rundir* run)
+                )
 
-      (+ (cadr *stair-bp*)
-         *stair-height*
-         (/ *stair-rise* 2.0)
-         (* 6.0 txtHeight)
-         *stair-rise*
-      )
+                (+ (cadr *stair-bp*) 
+                   *stair-height*
+                   (/ *stair-rise* 2.0)
+                   (* 6.0 txtHeight)
+                   *stair-rise*
+                )
 
-      0.0
-    )
+                0.0
+              )
   )
 
   ;; UCS -> WCS
 
-  (setq insPt
-    (trans insPt 1 0)
-  )
+  (setq insPt (trans insPt 1 0))
 
   ;; UCS rotation
 
-  (setq rot
-    (angle
-      '(0.0 0.0 0.0)
-      (getvar "UCSXDIR")
-    )
+  (setq rot (angle 
+              '(0.0 0.0 0.0)
+              (getvar "UCSXDIR")
+            )
   )
 
   ;; Create MTEXT
 
-  (setq obj
-    (vla-AddMText
+  (setq obj (vla-AddMText 
 
-      (vla-get-ModelSpace
+              (vla-get-ModelSpace 
 
-        (vla-get-ActiveDocument
+                (vla-get-ActiveDocument 
 
-          (vlax-get-acad-object)
-        )
-      )
+                  (vlax-get-acad-object)
+                )
+              )
 
-      (vlax-3d-point insPt)
+              (vlax-3d-point insPt)
 
-      0.0
+              0.0
 
-      txt
-    )
+              txt
+            )
   )
 
   ;; Properties
@@ -1406,26 +1347,17 @@
                          ep
                        )
           )
-;;;debug
-          (setq *stair-total-run*
 
-  (abs
+          (setq *stair-total-run* (abs 
 
-    (- (car ep)
+                                    (- (car ep) 
 
-       (car bp)
-    )
-  )
-)
+                                       (car bp)
+                                    )
+                                  )
+          )
 
-(prompt
-  (strcat
-    "\nTOTAL RUN="
-    (rtos *stair-total-run* 2 3)
-  )
-)
-          ;;;/end debug
-          
+
           ;; Proposed risers
 
           (setq risers (stair:propose-risers 
@@ -1453,7 +1385,7 @@
           (setq *stair-ep* ep)
 
           (setq *stair-height* height)
-;          (setq *stair-total-run* *stair-total-run*)
+          ;          (setq *stair-total-run* *stair-total-run*)
 
           (setq *stair-risers* risers)
           (setq *stair-rise* rise)
@@ -1517,34 +1449,24 @@
                    ((= tcmd "Value")
 
                     (setq tv (getreal 
-
                                (strcat 
-
                                  "\nTread value <"
-
                                  (stair:f2 *stair-fixed-tread*)
-
                                  ">: "
                                )
                              )
                     )
 
-                    (if (and tv (> tv 0.0)) 
+                    (if (null tv) 
+                      (setq tv *stair-fixed-tread*)
+                    )
 
+                    (if (> tv 0.0) 
                       (progn 
-
                         (setq *stair-fixed-tread* tv)
-
                         (setq *stair-mode* "FIXEDTREAD")
-
                         (stair:recompute)
-
                         (stair:refresh-preview)
-                      )
-
-                      (if tv 
-
-                        (prompt "\nInvalid tread value.")
                       )
                     )
                    )
@@ -1559,14 +1481,14 @@
 
                     (stair:refresh-preview)
                    )
-((= tcmd "Constrained")
+                   ((= tcmd "Constrained")
 
-  (setq *stair-mode* "CONSTRAINED")
+                    (setq *stair-mode* "CONSTRAINED")
 
-  (stair:recompute)
+                    (stair:recompute)
 
-  (stair:refresh-preview)
-)
+                    (stair:refresh-preview)
+                   )
                    ;; Accept
 
                    ((= tcmd "Accept")
@@ -1703,48 +1625,46 @@
 
               ((= cmd "Accept")
 
-                ;; Promote preview to final geometry
+               ;; Promote preview to final geometry
 
-                (setq *stair-preview* nil)
+               (setq *stair-preview* nil)
 
-                (stair:final-report)
+               (stair:final-report)
 
-                (initget "Yes No")
+               (initget "Yes No")
 
-                (setq rcmd
+               (setq rcmd (getkword 
 
-                  (getkword
+                            (strcat 
 
-                    (strcat
+                              "\nCreate text report? [Yes/No] <"
 
-                      "\nCreate text report? [Yes/No] <"
+                              *stair-report-mtext*
 
-                      *stair-report-mtext*
+                              ">: "
+                            )
+                          )
+               )
 
-                      ">: "
-                    )
-                  )
-                )
+               ;; Use previous choice as default
 
-                ;; Use previous choice as default
+               (if (null rcmd) 
 
-                (if (null rcmd)
+                 (setq rcmd *stair-report-mtext*)
+               )
 
-                  (setq rcmd *stair-report-mtext*)
-                )
+               ;; Remember user preference
 
-                ;; Remember user preference
+               (setq *stair-report-mtext* rcmd)
 
-                (setq *stair-report-mtext* rcmd)
+               ;; Create MTEXT if requested
 
-                ;; Create MTEXT if requested
+               (if (= rcmd "Yes") 
 
-                (if (= rcmd "Yes")
+                 (stair:create-report-mtext)
+               )
 
-                  (stair:create-report-mtext)
-                )
-
-                (setq done T)
+               (setq done T)
               )
 
               ;; Exit
@@ -1792,7 +1712,6 @@
 
   (princ)
 )
-;;;;;;;;;;;;;;;;;;;;;; debug
 
 ;------------------------------------------------------------
 ; STAIR (geometry test)
