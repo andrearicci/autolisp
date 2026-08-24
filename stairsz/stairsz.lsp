@@ -1,6 +1,6 @@
 (vl-load-com)
 ;------------------------------------------------------------
-; STAIR 046 - Constrained Tread Mode
+; STAIR 046A - Production Ready
 ; State Infrastructure
 ;  ✅ Geometry Engine frozen
 ;  ✅ UCS Independent
@@ -228,8 +228,6 @@
 ;------------------------------------------------------------
 ; Commands:
 ; STAIR
-; STAIRINFO
-; STAIRCALC
 ;------------------------------------------------------------
 ;------------------------------------------------------------
 ; Runtime state
@@ -745,9 +743,9 @@
   (princ)
 )
 ;------------------------------------------------------------
-; STAIRINFO
+; STAIR:INFO Internal Debug Helper
 ;------------------------------------------------------------
-(defun c:STAIRINFO (/) 
+(defun stair:info (/) 
   (prompt 
     (strcat 
       "\nINSUNITS = "
@@ -763,9 +761,9 @@
   (princ)
 )
 ;------------------------------------------------------------
-; STAIRCALC
+; STAIR:CALC (internal function)
 ;------------------------------------------------------------
-(defun c:STAIRCALC (/ bp ep height risers rise tread) 
+(defun stair:calc (/ bp ep height risers rise tread)
   (setq bp (getpoint "\nBase point: "))
   (if bp 
     (progn 
@@ -1350,5 +1348,5 @@
 ; STAIR (geometry test)
 ;------------------------------------------------------------
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(princ "\nSTAIR 046 - Constrained Tread Mode. Type STAIR to start.")
+(princ "\nSTAIR 046A - Production Ready. Type STAIR to start.")
 (princ)
