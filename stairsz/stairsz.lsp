@@ -1,6 +1,6 @@
 (vl-load-com)
 ;------------------------------------------------------------
-; STAIR 046A - Production Ready
+; STAIR v1.0.0 - First release
 ; State Infrastructure
 ;  ✅ Geometry Engine frozen
 ;  ✅ UCS Independent
@@ -11,6 +11,7 @@
 ;  ✅ Accept / Cancel
 ;  ✅ MTEXT report
 ;  ✅ added FIT (constrained) mode (from A to B)
+;..    #### next step: add landings ####
 ;
 ; Stair section generator
 ;
@@ -31,10 +32,8 @@
 ;;; along with this program. If not, see <https://www.gnu.org/licenses/>.
 ;;;
 ;;; Author: Andrea Ricci
-;;; Version: xxx
-;;;;;;;;;;;;;;;; da incollare in copilot per ricominciare
+;;; Version: v1.0.0
 
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;------------------------------------------------------------
 ; STAIR - USER GUIDE
 ;------------------------------------------------------------
@@ -45,16 +44,10 @@
 ; The stair is drawn as a lightweight polyline and can
 ; optionally generate an MTEXT design report.
 ;
-; COMMANDS
+; COMMAND
 ;
 ; STAIR
 ;     Main command.
-;
-; STAIRINFO
-;     Displays current unit conversion values.
-;
-; STAIRCALC
-;     Quick stair calculation without drawing geometry.
 ;
 ;
 ; WORKFLOW
@@ -1318,8 +1311,33 @@
   (princ)
 )
 ;------------------------------------------------------------
-; STAIR (geometry test)
+; STAIR (quick instructions)
 ;------------------------------------------------------------
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(princ "\nSTAIR 046A - Production Ready. Type STAIR to start.")
+(princ
+  (strcat
+
+    "\n----------------------------------------"
+    "\nSTAIR  v1.0.0 - Stair section generator -"
+    "\n----------------------------------------"
+
+    "\n"
+    "\nQuick workflow:"
+    "\n  1. Run STAIR"
+    "\n  2. Pick Base Point"
+    "\n  3. Pick Arrival Point"
+    "\n  4. Adjust stair parameters"
+    "\n  5. Accept"
+
+    "\n"
+    "\nTread modes:"
+    "\n  Ergonomic | Fixed Value | Fit (between picked points)"
+    "\n"
+    "\n"
+    "\nNosing modes:"
+    "\n  None | Square | Round"
+    "\n"
+    "\nType STAIR to start."
+  )
+)
 (princ)
