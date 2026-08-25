@@ -400,6 +400,16 @@
   (list nx ny)
 )
 ;------------------------------------------------------------
+; Warning helper
+;------------------------------------------------------------
+(defun stair:warning-mark (ang) 
+  ;; Warning if stair angle is outside 20°-50°
+  (if (or (< ang 20.0) (> ang 50.0)) 
+    "\\U+26A0"
+    ""
+  )
+)
+;------------------------------------------------------------
 ; Preview helpers
 ;------------------------------------------------------------
 (defun stair:delete-preview (/) 
@@ -729,7 +739,7 @@
 ;------------------------------------------------------------
 ; STAIR:CALC (internal function)
 ;------------------------------------------------------------
-(defun stair:calc (/ bp ep height risers rise tread)
+(defun stair:calc (/ bp ep height risers rise tread) 
   (setq bp (getpoint "\nBase point: "))
   (if bp 
     (progn 
@@ -797,7 +807,17 @@
 ;------------------------------------------------------------
 ; Preview report
 ;------------------------------------------------------------
-(defun stair:preview-report (height risers rise tread) 
+(defun stair:preview-report (height risers rise tread / run ang warn) 
+
+  (setq run (stair:total-run risers tread))
+
+  (setq ang (if (> run 0.0) 
+              (* 180.0 (/ (atan (/ height run)) pi))
+              90.0
+            )
+  )
+
+  (setq warn (stair:warning-mark ang))
   (prompt 
     (strcat 
       "\nPreview -> "
@@ -846,6 +866,14 @@
       )
       " | Nosing "
       *stair-nosing-type*
+
+      " | Angle "
+      (rtos ang 2 1)
+      "°"
+      (if (/= warn "") 
+        (strcat " " warn)
+        ""
+      )
     )
   )
   (princ)
@@ -939,56 +967,71 @@
 ;------------------------------------------------------------ 
 ; MTEXT report 
 ;------------------------------------------------------------
-(defun stair:create-report-mtext (/ run ang txt txtHeight insPt rot obj) 
+(defun stair:create-report-mtext (/ run ang warn txt txtHeight insPt rot obj) 
+
   (vl-load-com)
+
   ;; Total run
   (setq run (stair:total-run 
               *stair-risers*
               *stair-tread*
             )
   )
+
   ;; Stair angle in degrees
-  (setq ang (* 
-              180.0
-              (/ 
-                (atan (/ *stair-height* run))
-                pi
-              )
+  (setq ang (* 180.0 
+               (/ 
+                 (atan (/ *stair-height* run))
+                 pi
+               )
             )
   )
+
+  ;; Warning mark
+  (setq warn (stair:warning-mark ang))
+
   ;; Text height
   (setq txtHeight (/ *stair-rise* 3.0))
+
   ;; MTEXT contents
   (setq txt (strcat 
               "Height = "
               (stair:f2 *stair-height*)
               "\\P"
+
               "Run = "
               (stair:f2 run)
               "\\P"
+
               (itoa *stair-risers*)
               " risers of "
               (stair:f2 *stair-rise*)
               "\\P"
+
               (itoa 
                 (stair:tread-count *stair-risers*)
               )
               " treads of "
               (stair:f2 *stair-tread*)
               "\\P"
+
               "2R+T = "
               (stair:f2 
-                (+ 
-                  (* 2.0 *stair-rise*)
-                  *stair-tread*
+                (+ (* 2.0 *stair-rise*) 
+                   *stair-tread*
                 )
               )
               "\\P"
+
+              warn
+              (if (/= warn "") " " "")
+
               "Angle = "
               (rtos ang 2 1)
-              "\\U+00B0" ;; "°"
+              "\\U+00B0"
             )
   )
+
   ;; Insertion point in UCS
   (setq insPt (list 
                 (+ (car *stair-bp*) 
@@ -1003,14 +1046,17 @@
                 0.0
               )
   )
+
   ;; UCS -> WCS
   (setq insPt (trans insPt 1 0))
+
   ;; UCS rotation
   (setq rot (angle 
               '(0.0 0.0 0.0)
               (getvar "UCSXDIR")
             )
   )
+
   ;; Create MTEXT
   (setq obj (vla-AddMText 
               (vla-get-ModelSpace 
@@ -1023,11 +1069,14 @@
               txt
             )
   )
+
   ;; Properties
   (vla-put-Height obj txtHeight)
   (vla-put-Rotation obj rot)
+
   ;; Bottom Left
   (vla-put-AttachmentPoint obj 7)
+
   (princ)
 )
 ;------------------------------------------------------------
@@ -1314,30 +1363,14 @@
 ; STAIR (quick instructions)
 ;------------------------------------------------------------
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(princ
-  (strcat
-
-    "\n----------------------------------------"
-    "\nSTAIR  v1.0.0 - Stair section generator -"
-    "\n----------------------------------------"
-
-    "\n"
-    "\nQuick workflow:"
-    "\n  1. Run STAIR"
-    "\n  2. Pick Base Point"
-    "\n  3. Pick Arrival Point"
-    "\n  4. Adjust stair parameters"
-    "\n  5. Accept"
-
-    "\n"
-    "\nTread modes:"
-    "\n  Ergonomic | Fixed Value | Fit (between picked points)"
-    "\n"
-    "\n"
-    "\nNosing modes:"
-    "\n  None | Square | Round"
-    "\n"
-    "\nType STAIR to start."
+(princ 
+  (strcat "\n----------------------------------------" 
+          "\nSTAIR  v1.0.0 - Stair section generator -" 
+          "\n----------------------------------------" "\n" "\nQuick workflow:" 
+          "\n  1. Run STAIR" "\n  2. Pick Base Point" "\n  3. Pick Arrival Point" 
+          "\n  4. Adjust stair parameters" "\n  5. Accept" "\n" "\nTread modes:" 
+          "\n  Ergonomic | Fixed Value | Fit (between picked points)" "\n" "\n" 
+          "\nNosing modes:" "\n  None | Square | Round" "\n" "\nType STAIR to start."
   )
 )
 (princ)
