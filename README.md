@@ -9,7 +9,21 @@ Please help me to make it with ghost-elastic preview!
 adding this line of code to your acaddoc.lsp file will show the current _insunits_ in the taskbar (converted to a readable format)  
 ![](images/units.png)
 
+## stair (StairProfile.lsp)
+
+[Here](StairProfile) 
+Generates a stair section from two picked points.
+The stair is drawn as a lightweight polyline and can optionally generate a nosing and an MTEXT design report.
+
+- UCS independent.
+- insunits independent.
+- Run direction automatically detected.
+- Preview geometry and data.
+
+Replaces the old following:
+
 ## stairs
 
+See the [updated version](StairProfile)
 [Here](stairs) are two routines that are attempts to port [Dan E. Thomas'](https://forums.autodesk.com/t5/autocad-forum/custom-stair-program/td-p/5606736) routine to meters and centimeters. It draws a stair's section following simple prompts.
 My wish is to merge them all in a routine able to scale by the variable `insunits` or though a simple question to the user.

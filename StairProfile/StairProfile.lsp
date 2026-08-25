@@ -41,8 +41,7 @@
 ; PURPOSE
 ;
 ; Generates a stair section from two picked points.
-; The stair is drawn as a lightweight polyline and can
-; optionally generate an MTEXT design report.
+; The stair is drawn as a lightweight polyline and can optionally generate a nosing and an MTEXT design report
 ;
 ; COMMAND
 ;
@@ -186,6 +185,7 @@
 ; NOTES
 ;
 ; - UCS independent.
+; - insunits independent.
 ; - Run direction automatically detected.
 ; - Preview geometry is temporary.
 ; - Accept promotes preview to final geometry.
