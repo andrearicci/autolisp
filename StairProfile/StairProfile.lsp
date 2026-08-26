@@ -1081,7 +1081,6 @@
 )
 ;------------------------------------------------------------
 ; STAIR
-; 042B PART 4
 ;------------------------------------------------------------
 (defun c:STAIR (/ bp ep runDir height risers rise tread cmd done ncmd nx ny dia dims 
                 tcmd tv tdone rcmd
@@ -1364,9 +1363,9 @@
 ;------------------------------------------------------------
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (princ 
-  (strcat "\n----------------------------------------" 
+  (strcat "\n-----------------------------------------" 
           "\nSTAIR  v1.0.0 - Stair section generator -" 
-          "\n----------------------------------------" "\n" "\nQuick workflow:" 
+          "\n-----------------------------------------" "\n" "\nQuick workflow:" 
           "\n  1. Run STAIR" "\n  2. Pick Base Point" "\n  3. Pick Arrival Point" 
           "\n  4. Adjust stair parameters" "\n  5. Accept" "\n" "\nTread modes:" 
           "\n  Ergonomic | Fixed Value | Fit (between picked points)" "\n" "\n" 

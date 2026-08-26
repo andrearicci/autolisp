@@ -3,6 +3,11 @@
 Generates a stair section from two picked points.
 The stair is drawn as a lightweight polyline and can optionally generate a nosing and an MTEXT design report.
 
+More info:
+[https://andrearicci.it/howtocad/tools/stairprofile/](https://andrearicci.it/howtocad/tools/stairprofile/)
+
+[Demo on YT](https://youtu.be/ZwdLpNA_qJ4?si=dHSSVCVvAazjSwQN)
+
 ### COMMAND
 
  command: __STAIR__
