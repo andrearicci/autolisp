@@ -8,6 +8,11 @@ More info:
 
 [Demo on YT](https://youtu.be/ZwdLpNA_qJ4?si=dHSSVCVvAazjSwQN)
 
+### To do
+
+- Implement Z-shape geometry in the Nosing routine.
+- Add landing support (define quantity, length, and attachment risers).
+
 ### COMMAND
 
  command: __STAIR__
