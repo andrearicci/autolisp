@@ -1365,6 +1365,7 @@
 (princ 
   (strcat "\n-----------------------------------------" 
           "\nSTAIR  v1.0.0 - Stair section generator -" 
+          "\nBecause stairs are hard enough.         -"
           "\n-----------------------------------------" "\n" "\nQuick workflow:" 
           "\n  1. Run STAIR" "\n  2. Pick Base Point" "\n  3. Pick Arrival Point" 
           "\n  4. Adjust stair parameters" "\n  5. Accept" "\n" "\nTread modes:" 
