@@ -1,7 +1,7 @@
 ;==============================================================================
 ; CSRF - Column SuRFace
 ; Command: CSRF
-; Version: 1.1.0
+; Version: 1.1.1
 ; License: CC BY-NC-SA 4.0
 ; https://creativecommons.org/licenses/by-nc-sa/4.0/
 ;
@@ -12,15 +12,15 @@
 ; Quarter mode:
 ; - Select a center profile.
 ; - Pick a border point.
-; - The radius is computed from the minimum distance between the profile
+; - Radius is computed from the minimum distance between the profile
 ;   and the picked point.
 ; - Intermediate profiles are generated from 0° to 90°.
 ;
 ; Diameter mode:
 ; - Select the first boundary profile.
 ; - Select the opposite boundary profile near the corresponding location.
-; - Each selection click also provides the local measurement point.
-; - The diameter is computed from the projected points on both profiles.
+; - The pick points are projected onto the two profiles.
+; - Diameter is computed from the projected points.
 ; - Intermediate profiles are generated from 0° to 180°.
 ; - The 90° center profile is included.
 ;
@@ -36,10 +36,14 @@
   (* pi (/ a 180.0))
 )
 
-(defun CSRF-IsCurve (obj)
-  (and
-    (vlax-method-applicable-p obj 'GetClosestPointTo)
-    (vlax-method-applicable-p obj 'GetDistAtParam)
+(defun CSRF-IsCurve (ent)
+  (not
+    (vl-catch-all-error-p
+      (vl-catch-all-apply
+        'vlax-curve-getEndParam
+        (list ent)
+      )
+    )
   )
 )
 
@@ -49,13 +53,9 @@
 )
 
 (defun CSRF-DoOffset (ent dist sidePt / before after)
-
   (setq before (entlast))
-
   (command "_.OFFSET" dist ent sidePt "")
-
   (setq after (entlast))
-
   (and after (/= before after))
 )
 
@@ -63,9 +63,11 @@
 (
  /
  *error*
+ CSRF-Cleanup
  oldCmdecho
  oldOsmode
  undoStarted
+ ok
  tol
  mode
  divisions
@@ -75,9 +77,9 @@
  dist
  radius
  diameter
- sidePt
  ent
  obj
+ pickPt
  sel1
  sel2
  ent1
@@ -86,14 +88,14 @@
  obj2
  p1
  p2
- pickPt
+ sidePt
 )
 
   (vl-load-com)
 
-  ;;--------------------------------------------------------------------------
+  ;;------------------------------------------------------------------------
   ;; Session defaults
-  ;;--------------------------------------------------------------------------
+  ;;------------------------------------------------------------------------
 
   (if (not CSRF:QuarterDivisions)
     (setq CSRF:QuarterDivisions 6)
@@ -105,14 +107,17 @@
 
   (setq tol 1e-8)
 
-  ;;--------------------------------------------------------------------------
-  ;; Error handler
-  ;;--------------------------------------------------------------------------
+  ;;------------------------------------------------------------------------
+  ;; Cleanup
+  ;;------------------------------------------------------------------------
 
-  (defun *error* (msg)
+  (defun CSRF-Cleanup ()
 
     (if undoStarted
-      (command "_.UNDO" "_END")
+      (progn
+        (command-s "_.UNDO" "_END")
+        (setq undoStarted nil)
+      )
     )
 
     (if oldCmdecho
@@ -122,15 +127,25 @@
     (if oldOsmode
       (setvar 'OSMODE oldOsmode)
     )
+  )
+
+  ;;------------------------------------------------------------------------
+  ;; Error handler
+  ;;------------------------------------------------------------------------
+
+  (defun *error* (msg)
+
+    (CSRF-Cleanup)
 
     (if
-      (and msg
-           (not
-             (wcmatch
-               (strcase msg)
-               "*CANCEL*,*EXIT*,*QUIT*"
-             )
-           )
+      (and
+        msg
+        (not
+          (wcmatch
+            (strcase msg)
+            "*CANCEL*,*QUIT*,*EXIT*"
+          )
+        )
       )
       (prompt (strcat "\nError: " msg))
     )
@@ -138,9 +153,9 @@
     (princ)
   )
 
-  ;;--------------------------------------------------------------------------
+  ;;------------------------------------------------------------------------
   ;; Environment
-  ;;--------------------------------------------------------------------------
+  ;;------------------------------------------------------------------------
 
   (setq oldCmdecho (getvar 'CMDECHO))
   (setq oldOsmode  (getvar 'OSMODE))
@@ -150,9 +165,9 @@
   (command "_.UNDO" "_BEGIN")
   (setq undoStarted T)
 
-  ;;--------------------------------------------------------------------------
-  ;; Mode
-  ;;--------------------------------------------------------------------------
+  ;;------------------------------------------------------------------------
+  ;; Mode selection
+  ;;------------------------------------------------------------------------
 
   (initget "Quarter Diameter")
 
@@ -166,15 +181,15 @@
     (setq mode "Quarter")
   )
 
-  ;;--------------------------------------------------------------------------
-  ;; Quarter mode
-  ;;--------------------------------------------------------------------------
+  ;;==========================================================================
+  ;; Quarter
+  ;;==========================================================================
 
-  (cond
+  (if (= mode "Quarter")
 
-    ((= mode "Quarter")
+    (progn
 
-      (initget 7)
+      (initget 6)
 
       (setq divisions
             (getint
@@ -192,95 +207,94 @@
 
       (setq CSRF:QuarterDivisions divisions)
 
-      (setq stepAngle (/ 90.0 divisions))
-
       (setq sel1
             (entsel
               "\nSelect center profile: "
             )
       )
 
-      (if (null sel1)
+      (if sel1
+
         (progn
-          (*error* nil)
-          (exit)
-        )
-      )
 
-      (setq ent (car sel1))
-      (setq obj (vlax-ename->vla-object ent))
+          (setq ent (car sel1))
 
-      (if (not (CSRF-IsCurve obj))
-        (progn
-          (prompt "\nUnsupported entity.")
-          (*error* nil)
-          (exit)
-        )
-      )
+          (if (CSRF-IsCurve ent)
 
-      (setq pickPt
-            (getpoint
-              "\nSpecify border point: "
-            )
-      )
+            (progn
 
-      (if (null pickPt)
-        (progn
-          (*error* nil)
-          (exit)
-        )
-      )
+              (setq obj (vlax-ename->vla-object ent))
 
-      (setq radius
-            (CSRF-GetRadius obj pickPt)
-      )
-
-      (if (< radius tol)
-        (progn
-          (prompt "\nInvalid radius.")
-          (*error* nil)
-          (exit)
-        )
-      )
-
-      (setq created 0)
-      (setq theta stepAngle)
-
-      (while (< theta 90.0)
-
-        (setq dist
-              (* radius
-                 (sin
-                   (CSRF-DegToRad theta)
-                 )
+              (setq pickPt
+                    (getpoint
+                      "\nSpecify border point: "
+                    )
               )
-        )
 
-        (if (CSRF-DoOffset ent dist pickPt)
-          (setq created (1+ created))
-        )
+              (if pickPt
 
-        (setq theta (+ theta stepAngle))
-      )
+                (progn
 
-      (prompt
-        (strcat
-          "\nQuarter surface generated."
-          "\nRadius = "
-          (rtos radius 2 3)
-          "\nProfiles created = "
-          (itoa created)
+                  (setq radius
+                        (CSRF-GetRadius obj pickPt)
+                  )
+
+                  (if (> radius tol)
+
+                    (progn
+
+                      (setq stepAngle (/ 90.0 divisions))
+                      (setq theta stepAngle)
+                      (setq created 0)
+
+                      (while (< theta 90.0)
+
+                        (setq dist
+                              (* radius
+                                 (sin
+                                   (CSRF-DegToRad theta)
+                                 )
+                              )
+                        )
+
+                        (if
+                          (CSRF-DoOffset ent dist pickPt)
+                          (setq created (1+ created))
+                        )
+
+                        (setq theta (+ theta stepAngle))
+                      )
+
+                      (prompt
+                        (strcat
+                          "\nQuarter surface generated."
+                          "\nRadius = "
+                          (rtos radius 2 3)
+                          "\nProfiles created = "
+                          (itoa created)
+                        )
+                      )
+                    )
+
+                    (prompt "\nInvalid radius.")
+                  )
+                )
+              )
+            )
+
+            (prompt "\nUnsupported entity.")
+          )
         )
       )
     )
 
-    ;;----------------------------------------------------------------------
-    ;; Diameter mode
-    ;;----------------------------------------------------------------------
+    ;;======================================================================
+    ;; Diameter
+    ;;======================================================================
 
-    ((= mode "Diameter")
+    (progn
 
-      (initget 7)
+      (initget 6)
 
       (setq divisions
             (getint
@@ -298,151 +312,161 @@
 
       (setq CSRF:DiameterDivisions divisions)
 
-      (setq stepAngle (/ 180.0 divisions))
-
-      ;; First profile + measurement point
-
       (setq sel1
             (entsel
               "\nSelect first boundary profile: "
             )
       )
 
-      (if (null sel1)
+      (if sel1
+
         (progn
-          (*error* nil)
-          (exit)
-        )
-      )
 
-      (setq ent1 (car sel1))
-      (setq obj1 (vlax-ename->vla-object ent1))
+          (setq ent1 (car sel1))
 
-      (if (not (CSRF-IsCurve obj1))
-        (progn
-          (prompt "\nUnsupported first entity.")
-          (*error* nil)
-          (exit)
-        )
-      )
+          (if (CSRF-IsCurve ent1)
 
-      (setq p1
-            (vlax-curve-getClosestPointTo
-              obj1
-              (cadr sel1)
-            )
-      )
+            (progn
 
-      ;; Second profile + measurement point
+              (setq obj1 (vlax-ename->vla-object ent1))
 
-      (setq sel2
-            (entsel
-              "\nSelect opposite boundary profile near corresponding location: "
-            )
-      )
-
-      (if (null sel2)
-        (progn
-          (*error* nil)
-          (exit)
-        )
-      )
-
-      (setq ent2 (car sel2))
-
-      (if (= ent1 ent2)
-        (progn
-          (prompt "\nSelect two different profiles.")
-          (*error* nil)
-          (exit)
-        )
-      )
-
-      (setq obj2 (vlax-ename->vla-object ent2))
-
-      (if (not (CSRF-IsCurve obj2))
-        (progn
-          (prompt "\nUnsupported second entity.")
-          (*error* nil)
-          (exit)
-        )
-      )
-
-      (setq p2
-            (vlax-curve-getClosestPointTo
-              obj2
-              (cadr sel2)
-            )
-      )
-
-      (setq diameter
-            (distance p1 p2)
-      )
-
-      (if (< diameter tol)
-        (progn
-          (prompt "\nInvalid diameter.")
-          (*error* nil)
-          (exit)
-        )
-      )
-
-      (setq radius (/ diameter 2.0))
-
-      ;; Use projected second point as offset side
-
-      (setq sidePt p2)
-
-      (setq created 0)
-      (setq theta stepAngle)
-
-      (while (< theta 180.0)
-
-        (setq dist
-              (* 0.5
-                 diameter
-                 (- 1.0
-                    (cos
-                      (CSRF-DegToRad theta)
+              (setq p1
+                    (vlax-curve-getClosestPointTo
+                      obj1
+                      (cadr sel1)
                     )
-                 )
               )
-        )
 
-        (if (CSRF-DoOffset ent1 dist sidePt)
-          (setq created (1+ created))
-        )
+              (setq sel2
+                    (entsel
+                      "\nSelect opposite boundary profile near corresponding location: "
+                    )
+              )
 
-        (setq theta (+ theta stepAngle))
-      )
+              (if sel2
 
-      (prompt
-        (strcat
-          "\nHalf-column surface generated."
-          "\nDiameter = "
-          (rtos diameter 2 3)
-          "\nRadius = "
-          (rtos radius 2 3)
-          "\nProfiles created = "
-          (itoa created)
+                (progn
+
+                  (setq ent2 (car sel2))
+
+                  (if (/= ent1 ent2)
+
+                    (progn
+
+                      (if (CSRF-IsCurve ent2)
+
+                        (progn
+
+                          (setq obj2
+                                (vlax-ename->vla-object ent2)
+                          )
+
+                          (setq p2
+                                (vlax-curve-getClosestPointTo
+                                  obj2
+                                  (cadr sel2)
+                                )
+                          )
+
+                          (setq diameter
+                                (distance p1 p2)
+                          )
+
+                          (if (> diameter tol)
+
+                            (progn
+
+                              ;; Robust side point independent
+                              ;; from entity selection order
+
+                              (setq sidePt
+                                    (mapcar
+                                      '+
+                                      p2
+                                      (mapcar
+                                        '(lambda (a b)
+                                           (- a b)
+                                         )
+                                        p2
+                                        p1
+                                      )
+                                    )
+                              )
+
+                              (setq stepAngle
+                                    (/ 180.0 divisions)
+                              )
+
+                              (setq theta stepAngle)
+                              (setq created 0)
+
+                              (while (< theta 180.0)
+
+                                (setq dist
+                                      (* 0.5
+                                         diameter
+                                         (- 1.0
+                                            (cos
+                                              (CSRF-DegToRad theta)
+                                            )
+                                         )
+                                      )
+                                )
+
+                                (if
+                                  (CSRF-DoOffset
+                                    ent1
+                                    dist
+                                    sidePt
+                                  )
+                                  (setq created
+                                        (1+ created)
+                                  )
+                                )
+
+                                (setq theta
+                                      (+ theta stepAngle)
+                                )
+                              )
+
+                              (prompt
+                                (strcat
+                                  "\nHalf-column surface generated."
+                                  "\nDiameter = "
+                                  (rtos diameter 2 3)
+                                  "\nRadius = "
+                                  (rtos (/ diameter 2.0) 2 3)
+                                  "\nProfiles created = "
+                                  (itoa created)
+                                )
+                              )
+                            )
+
+                            (prompt "\nInvalid diameter.")
+                          )
+                        )
+
+                        (prompt "\nUnsupported entity.")
+                      )
+                    )
+
+                    (prompt "\nSelect two different profiles.")
+                  )
+                )
+              )
+            )
+
+            (prompt "\nUnsupported entity.")
+          )
         )
       )
     )
   )
 
-  ;;--------------------------------------------------------------------------
-  ;; Restore environment
-  ;;--------------------------------------------------------------------------
-
-  (command "_.UNDO" "_END")
-  (setq undoStarted nil)
-
-  (setvar 'CMDECHO oldCmdecho)
-  (setvar 'OSMODE oldOsmode)
+  (CSRF-Cleanup)
 
   (princ)
 )
 
-(princ "\nCSRF v1.0.0 loaded. Type CSRF to run.")
+(princ "\nCSRF v1.1.1 loaded. Type CSRF to run.")
 (princ)
-``
