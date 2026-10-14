@@ -1,7 +1,7 @@
 ;==============================================================================
 ; CSRF - Column SuRFace
 ; Command: CSRF
-; Version: 1.1.1
+; Version: 1.1.2
 ; License: CC BY-NC-SA 4.0
 ; https://creativecommons.org/licenses/by-nc-sa/4.0/
 ;
@@ -19,8 +19,8 @@
 ; Diameter mode:
 ; - Select the first boundary profile.
 ; - Select the opposite boundary profile near the corresponding location.
-; - The pick points are projected onto the two profiles.
-; - Diameter is computed from the projected points.
+; - The picked points are projected onto the selected curves.
+; - Diameter is computed from the two projected points.
 ; - Intermediate profiles are generated from 0° to 180°.
 ; - The 90° center profile is included.
 ;
@@ -48,26 +48,41 @@
 )
 
 (defun CSRF-GetRadius (obj pt / cpt)
-  (setq cpt (vlax-curve-getClosestPointTo obj pt))
+
+  (setq cpt
+        (vlax-curve-getClosestPointTo obj pt)
+  )
+
   (distance pt cpt)
 )
 
 (defun CSRF-DoOffset (ent dist sidePt / before after)
+
   (setq before (entlast))
+
   (command "_.OFFSET" dist ent sidePt "")
+
   (setq after (entlast))
+
   (and after (/= before after))
+)
+
+(defun CSRF-EndUndo ()
+
+  (if CSRF:UndoStarted
+    (progn
+      (command "_.UNDO" "_END")
+      (setq CSRF:UndoStarted nil)
+    )
+  )
 )
 
 (defun C:CSRF
 (
  /
  *error*
- CSRF-Cleanup
  oldCmdecho
  oldOsmode
- undoStarted
- ok
  tol
  mode
  divisions
@@ -93,9 +108,9 @@
 
   (vl-load-com)
 
-  ;;------------------------------------------------------------------------
+  ;;--------------------------------------------------------------------------
   ;; Session defaults
-  ;;------------------------------------------------------------------------
+  ;;--------------------------------------------------------------------------
 
   (if (not CSRF:QuarterDivisions)
     (setq CSRF:QuarterDivisions 6)
@@ -105,20 +120,27 @@
     (setq CSRF:DiameterDivisions 12)
   )
 
+  (if (not CSRF:UndoStarted)
+    (setq CSRF:UndoStarted nil)
+  )
+
   (setq tol 1e-8)
 
-  ;;------------------------------------------------------------------------
-  ;; Cleanup
-  ;;------------------------------------------------------------------------
+  ;;--------------------------------------------------------------------------
+  ;; Error handler
+  ;;--------------------------------------------------------------------------
 
-  (defun CSRF-Cleanup ()
+  (defun *error* (msg)
 
-    (if undoStarted
-      (progn
-        (command-s "_.UNDO" "_END")
-        (setq undoStarted nil)
+    (if CSRF:UndoStarted
+      (vl-catch-all-apply
+        '(lambda ()
+           (command "_.UNDO" "_END")
+         )
       )
     )
+
+    (setq CSRF:UndoStarted nil)
 
     (if oldCmdecho
       (setvar 'CMDECHO oldCmdecho)
@@ -127,25 +149,15 @@
     (if oldOsmode
       (setvar 'OSMODE oldOsmode)
     )
-  )
-
-  ;;------------------------------------------------------------------------
-  ;; Error handler
-  ;;------------------------------------------------------------------------
-
-  (defun *error* (msg)
-
-    (CSRF-Cleanup)
 
     (if
-      (and
-        msg
-        (not
-          (wcmatch
-            (strcase msg)
-            "*CANCEL*,*QUIT*,*EXIT*"
-          )
-        )
+      (and msg
+           (not
+             (wcmatch
+               (strcase msg)
+               "*CANCEL*,*QUIT*,*EXIT*"
+             )
+           )
       )
       (prompt (strcat "\nError: " msg))
     )
@@ -153,21 +165,18 @@
     (princ)
   )
 
-  ;;------------------------------------------------------------------------
-  ;; Environment
-  ;;------------------------------------------------------------------------
+  ;;--------------------------------------------------------------------------
+  ;; Save environment
+  ;;--------------------------------------------------------------------------
 
   (setq oldCmdecho (getvar 'CMDECHO))
   (setq oldOsmode  (getvar 'OSMODE))
 
   (setvar 'CMDECHO 0)
 
-  (command "_.UNDO" "_BEGIN")
-  (setq undoStarted T)
-
-  ;;------------------------------------------------------------------------
-  ;; Mode selection
-  ;;------------------------------------------------------------------------
+  ;;--------------------------------------------------------------------------
+  ;; Mode
+  ;;--------------------------------------------------------------------------
 
   (initget "Quarter Diameter")
 
@@ -182,7 +191,7 @@
   )
 
   ;;==========================================================================
-  ;; Quarter
+  ;; QUARTER
   ;;==========================================================================
 
   (if (= mode "Quarter")
@@ -243,7 +252,15 @@
 
                     (progn
 
-                      (setq stepAngle (/ 90.0 divisions))
+                      ;; Open undo only now
+
+                      (command "_.UNDO" "_BEGIN")
+                      (setq CSRF:UndoStarted T)
+
+                      (setq stepAngle
+                            (/ 90.0 divisions)
+                      )
+
                       (setq theta stepAngle)
                       (setq created 0)
 
@@ -258,12 +275,22 @@
                         )
 
                         (if
-                          (CSRF-DoOffset ent dist pickPt)
-                          (setq created (1+ created))
+                          (CSRF-DoOffset
+                            ent
+                            dist
+                            pickPt
+                          )
+                          (setq created
+                                (1+ created)
+                          )
                         )
 
-                        (setq theta (+ theta stepAngle))
+                        (setq theta
+                              (+ theta stepAngle)
+                        )
                       )
+
+                      (CSRF-EndUndo)
 
                       (prompt
                         (strcat
@@ -288,9 +315,9 @@
       )
     )
 
-    ;;======================================================================
-    ;; Diameter
-    ;;======================================================================
+    ;;========================================================================
+    ;; DIAMETER
+    ;;========================================================================
 
     (progn
 
@@ -328,7 +355,9 @@
 
             (progn
 
-              (setq obj1 (vlax-ename->vla-object ent1))
+              (setq obj1
+                    (vlax-ename->vla-object ent1)
+              )
 
               (setq p1
                     (vlax-curve-getClosestPointTo
@@ -376,8 +405,10 @@
 
                             (progn
 
-                              ;; Robust side point independent
-                              ;; from entity selection order
+                              ;; Open undo only now
+
+                              (command "_.UNDO" "_BEGIN")
+                              (setq CSRF:UndoStarted T)
 
                               (setq sidePt
                                     (mapcar
@@ -429,6 +460,8 @@
                                 )
                               )
 
+                              (CSRF-EndUndo)
+
                               (prompt
                                 (strcat
                                   "\nHalf-column surface generated."
@@ -463,10 +496,11 @@
     )
   )
 
-  (CSRF-Cleanup)
+  (setvar 'CMDECHO oldCmdecho)
+  (setvar 'OSMODE oldOsmode)
 
   (princ)
 )
 
-(princ "\nCSRF v1.1.1 loaded. Type CSRF to run.")
+(princ "\nCSRF v1.1.2 loaded. Type CSRF to run.")
 (princ)
