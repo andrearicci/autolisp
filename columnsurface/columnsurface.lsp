@@ -1,7 +1,7 @@
 ;==============================================================================
 ; CSRF - Column SuRFace
 ; Command: CSRF
-; Version: 1.0.0
+; Version: 1.1.0
 ; License: CC BY-NC-SA 4.0
 ; https://creativecommons.org/licenses/by-nc-sa/4.0/
 ;
@@ -11,21 +11,22 @@
 ;
 ; Quarter mode:
 ; - Select a center profile.
-; - Pick a border point to define radius and offset side.
-; - Creates intermediate profiles from 0° to 90°.
+; - Pick a border point.
+; - The radius is computed from the minimum distance between the profile
+;   and the picked point.
+; - Intermediate profiles are generated from 0° to 90°.
 ;
 ; Diameter mode:
-; - Select two parallel boundary profiles representing a diameter.
-; - Diameter is automatically measured between profiles.
-; - Creates intermediate profiles from 0° to 180°.
-; - Includes the center profile (90°).
+; - Select the first boundary profile.
+; - Select the opposite boundary profile near the corresponding location.
+; - Each selection click also provides the local measurement point.
+; - The diameter is computed from the projected points on both profiles.
+; - Intermediate profiles are generated from 0° to 180°.
+; - The 90° center profile is included.
 ;
 ; Notes:
-; - Diameter mode assumes both profiles are parallel offsets
-;   of the same source geometry.
-; - A single Undo restores the drawing to the state before
-;   command execution.
-; - Default subdivision count is 6 (15° spacing).
+; - A single Undo restores the drawing to the state before command execution.
+; - Division values are remembered during the current AutoCAD session.
 ;
 ; Load with APPLOAD
 ; Run command: CSRF
@@ -47,34 +48,7 @@
   (distance pt cpt)
 )
 
-(defun CSRF-GetDiameter (obj1 obj2 / p p2 par)
-  (setq par
-        (/ (+ (vlax-curve-getStartParam obj1)
-              (vlax-curve-getEndParam obj1))
-           2.0
-        )
-  )
-
-  (setq p
-        (vlax-curve-getPointAtParam obj1 par)
-  )
-
-  (setq p2
-        (vlax-curve-getClosestPointTo obj2 p)
-  )
-
-  (distance p p2)
-)
-
-(defun CSRF-GetLength (obj)
-  (vlax-curve-getDistAtParam
-    obj
-    (vlax-curve-getEndParam obj)
-  )
-)
-
-(defun CSRF-DoOffset
-       (ent dist sidePt / before after)
+(defun CSRF-DoOffset (ent dist sidePt / before after)
 
   (setq before (entlast))
 
@@ -82,10 +56,7 @@
 
   (setq after (entlast))
 
-  (if (and after (/= before after))
-    T
-    nil
-  )
+  (and after (/= before after))
 )
 
 (defun C:CSRF
@@ -95,29 +66,48 @@
  oldCmdecho
  oldOsmode
  undoStarted
+ tol
  mode
  divisions
  stepAngle
- ent
- ent1
- ent2
- obj
- obj1
- obj2
- sidePt
- radius
- diameter
+ created
  theta
  dist
- created
- len1
- len2
- tol
+ radius
+ diameter
+ sidePt
+ ent
+ obj
+ sel1
+ sel2
+ ent1
+ ent2
+ obj1
+ obj2
+ p1
+ p2
+ pickPt
 )
 
   (vl-load-com)
 
-  (setq tol 1e-6)
+  ;;--------------------------------------------------------------------------
+  ;; Session defaults
+  ;;--------------------------------------------------------------------------
+
+  (if (not CSRF:QuarterDivisions)
+    (setq CSRF:QuarterDivisions 6)
+  )
+
+  (if (not CSRF:DiameterDivisions)
+    (setq CSRF:DiameterDivisions 12)
+  )
+
+  (setq tol 1e-8)
+
+  ;;--------------------------------------------------------------------------
+  ;; Error handler
+  ;;--------------------------------------------------------------------------
 
   (defun *error* (msg)
 
@@ -138,15 +128,19 @@
            (not
              (wcmatch
                (strcase msg)
-               "*CANCEL*,*QUIT*,*EXIT*"
+               "*CANCEL*,*EXIT*,*QUIT*"
              )
            )
       )
-      (princ (strcat "\nError: " msg))
+      (prompt (strcat "\nError: " msg))
     )
 
     (princ)
   )
+
+  ;;--------------------------------------------------------------------------
+  ;; Environment
+  ;;--------------------------------------------------------------------------
 
   (setq oldCmdecho (getvar 'CMDECHO))
   (setq oldOsmode  (getvar 'OSMODE))
@@ -173,81 +167,64 @@
   )
 
   ;;--------------------------------------------------------------------------
-  ;; Divisions
-  ;;--------------------------------------------------------------------------
-
-  (initget 7)
-
-  (setq divisions
-        (getint
-          "\nNumber of quarter divisions <6>: "
-        )
-  )
-
-  (if (null divisions)
-    (setq divisions 6)
-  )
-
-  (if (<= divisions 0)
-    (progn
-      (prompt "\nInvalid division count.")
-      (*error* nil)
-      (exit)
-    )
-  )
-
-  (setq stepAngle (/ 90.0 divisions))
-
-  (if (<= stepAngle 0.0)
-    (progn
-      (prompt "\nInvalid angular step.")
-      (*error* nil)
-      (exit)
-    )
-  )
-
-  (setq created 0)
-
-  ;;--------------------------------------------------------------------------
-  ;; QUARTER
+  ;; Quarter mode
   ;;--------------------------------------------------------------------------
 
   (cond
 
     ((= mode "Quarter")
 
-      (setq ent
-            (car
-              (entsel
-                "\nSelect center profile: "
+      (initget 7)
+
+      (setq divisions
+            (getint
+              (strcat
+                "\nNumber of divisions <"
+                (itoa CSRF:QuarterDivisions)
+                ">: "
               )
             )
       )
 
-      (if (null ent)
+      (if (null divisions)
+        (setq divisions CSRF:QuarterDivisions)
+      )
+
+      (setq CSRF:QuarterDivisions divisions)
+
+      (setq stepAngle (/ 90.0 divisions))
+
+      (setq sel1
+            (entsel
+              "\nSelect center profile: "
+            )
+      )
+
+      (if (null sel1)
         (progn
           (*error* nil)
           (exit)
         )
       )
 
+      (setq ent (car sel1))
       (setq obj (vlax-ename->vla-object ent))
 
       (if (not (CSRF-IsCurve obj))
         (progn
-          (prompt "\nSelected entity is not supported.")
+          (prompt "\nUnsupported entity.")
           (*error* nil)
           (exit)
         )
       )
 
-      (setq sidePt
+      (setq pickPt
             (getpoint
               "\nSpecify border point: "
             )
       )
 
-      (if (null sidePt)
+      (if (null pickPt)
         (progn
           (*error* nil)
           (exit)
@@ -255,7 +232,7 @@
       )
 
       (setq radius
-            (CSRF-GetRadius obj sidePt)
+            (CSRF-GetRadius obj pickPt)
       )
 
       (if (< radius tol)
@@ -266,17 +243,20 @@
         )
       )
 
+      (setq created 0)
       (setq theta stepAngle)
 
       (while (< theta 90.0)
 
         (setq dist
               (* radius
-                 (sin (CSRF-DegToRad theta))
+                 (sin
+                   (CSRF-DegToRad theta)
+                 )
               )
         )
 
-        (if (CSRF-DoOffset ent dist sidePt)
+        (if (CSRF-DoOffset ent dist pickPt)
           (setq created (1+ created))
         )
 
@@ -294,41 +274,81 @@
       )
     )
 
-    ;;--------------------------------------------------------------------------
-    ;; DIAMETER
-    ;;--------------------------------------------------------------------------
+    ;;----------------------------------------------------------------------
+    ;; Diameter mode
+    ;;----------------------------------------------------------------------
 
     ((= mode "Diameter")
 
-      (setq ent1
-            (car
-              (entsel
-                "\nSelect first boundary profile: "
+      (initget 7)
+
+      (setq divisions
+            (getint
+              (strcat
+                "\nNumber of divisions <"
+                (itoa CSRF:DiameterDivisions)
+                ">: "
               )
             )
       )
 
-      (if (null ent1)
+      (if (null divisions)
+        (setq divisions CSRF:DiameterDivisions)
+      )
+
+      (setq CSRF:DiameterDivisions divisions)
+
+      (setq stepAngle (/ 180.0 divisions))
+
+      ;; First profile + measurement point
+
+      (setq sel1
+            (entsel
+              "\nSelect first boundary profile: "
+            )
+      )
+
+      (if (null sel1)
         (progn
           (*error* nil)
           (exit)
         )
       )
 
-      (setq ent2
-            (car
-              (entsel
-                "\nSelect second boundary profile: "
-              )
+      (setq ent1 (car sel1))
+      (setq obj1 (vlax-ename->vla-object ent1))
+
+      (if (not (CSRF-IsCurve obj1))
+        (progn
+          (prompt "\nUnsupported first entity.")
+          (*error* nil)
+          (exit)
+        )
+      )
+
+      (setq p1
+            (vlax-curve-getClosestPointTo
+              obj1
+              (cadr sel1)
             )
       )
 
-      (if (null ent2)
+      ;; Second profile + measurement point
+
+      (setq sel2
+            (entsel
+              "\nSelect opposite boundary profile near corresponding location: "
+            )
+      )
+
+      (if (null sel2)
         (progn
           (*error* nil)
           (exit)
         )
       )
+
+      (setq ent2 (car sel2))
 
       (if (= ent1 ent2)
         (progn
@@ -338,31 +358,25 @@
         )
       )
 
-      (setq obj1 (vlax-ename->vla-object ent1))
       (setq obj2 (vlax-ename->vla-object ent2))
 
-      (if (or
-            (not (CSRF-IsCurve obj1))
-            (not (CSRF-IsCurve obj2))
-          )
+      (if (not (CSRF-IsCurve obj2))
         (progn
-          (prompt "\nOne or more selected entities are not supported.")
+          (prompt "\nUnsupported second entity.")
           (*error* nil)
           (exit)
         )
       )
 
-      (setq len1 (CSRF-GetLength obj1))
-      (setq len2 (CSRF-GetLength obj2))
-
-      (if (> (abs (- len1 len2)) tol)
-        (prompt
-          "\nWarning: profiles do not have the same length."
-        )
+      (setq p2
+            (vlax-curve-getClosestPointTo
+              obj2
+              (cadr sel2)
+            )
       )
 
       (setq diameter
-            (CSRF-GetDiameter obj1 obj2)
+            (distance p1 p2)
       )
 
       (if (< diameter tol)
@@ -375,27 +389,22 @@
 
       (setq radius (/ diameter 2.0))
 
-      (setq sidePt
-            (vlax-curve-getClosestPointTo
-              obj2
-              (vlax-curve-getPointAtParam
-                obj1
-                (/ (+ (vlax-curve-getStartParam obj1)
-                      (vlax-curve-getEndParam obj1))
-                   2.0
-                )
-              )
-            )
-      )
+      ;; Use projected second point as offset side
 
+      (setq sidePt p2)
+
+      (setq created 0)
       (setq theta stepAngle)
 
       (while (< theta 180.0)
 
         (setq dist
-              (* radius
+              (* 0.5
+                 diameter
                  (- 1.0
-                    (cos (CSRF-DegToRad theta))
+                    (cos
+                      (CSRF-DegToRad theta)
+                    )
                  )
               )
         )
@@ -421,6 +430,10 @@
     )
   )
 
+  ;;--------------------------------------------------------------------------
+  ;; Restore environment
+  ;;--------------------------------------------------------------------------
+
   (command "_.UNDO" "_END")
   (setq undoStarted nil)
 
@@ -432,3 +445,4 @@
 
 (princ "\nCSRF v1.0.0 loaded. Type CSRF to run.")
 (princ)
+``
