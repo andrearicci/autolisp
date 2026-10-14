@@ -1,7 +1,5 @@
 ;==============================================================================
-; Column Surface Offsets
-; crea degli offset a passo sinusoidale di un oggetto selezionato per emulare una superficie rigata di 1/4 di colonna 
-; Command: CSRF
+; CSRF - Column SuRFace
 ; Version: 1.0.0
 ; License: CC BY-NC-SA 4.0
 ; https://creativecommons.org/licenses/by-nc-sa/4.0/
@@ -10,27 +8,68 @@
 ; Run command: CSRF
 ;==============================================================================
 
+(defun CSRF-DegToRad (a)
+  (* pi (/ a 180.0))
+)
+
+(defun CSRF-Offset
+       (ent dist sidePt)
+  (command "_.OFFSET" dist ent sidePt "")
+)
+
+(defun CSRF-GetRadius
+       (obj pt / cpt)
+  (setq cpt
+        (vlax-curve-getClosestPointTo obj pt)
+  )
+
+  (distance pt cpt)
+)
+
+(defun CSRF-GetDiameter
+       (obj1 obj2 / p p2 par)
+
+  (setq par
+        (/ (+ (vlax-curve-getStartParam obj1)
+              (vlax-curve-getEndParam obj1))
+           2.0
+        )
+  )
+
+  (setq p
+        (vlax-curve-getPointAtParam obj1 par)
+  )
+
+  (setq p2
+        (vlax-curve-getClosestPointTo obj2 p)
+  )
+
+  (distance p p2)
+)
+
 (defun C:CSRF
 (
-  /
-  *error*
-  oldCmdecho
-  oldOsmode
-  ent
-  sidePt
-  radius
-  divisions
-  stepAngle
-  i
-  angle
-  offsetDist
+ /
+ *error*
+ oldCmdecho
+ oldOsmode
+ mode
+ angleStep
+ ent
+ ent1
+ ent2
+ obj
+ obj1
+ obj2
+ sidePt
+ radius
+ diameter
+ theta
+ dist
 )
 
   (vl-load-com)
 
-  ;;--------------------------------------------------------------------------
-  ;; Error handler
-  ;;--------------------------------------------------------------------------
   (defun *error* (msg)
 
     (if oldCmdecho
@@ -42,102 +81,222 @@
     )
 
     (if
-      (and
-        msg
-        (not (wcmatch (strcase msg) "*CANCEL*,*EXIT*,*QUIT*"))
+      (and msg
+           (not (wcmatch (strcase msg)
+                         "*CANCEL*,*QUIT*,*EXIT*"
+                )
+           )
       )
-      (princ (strcat "\nError: " msg))
+      (princ
+        (strcat "\nError: " msg)
+      )
     )
 
     (princ)
   )
 
-  ;;--------------------------------------------------------------------------
-  ;; Save environment
-  ;;--------------------------------------------------------------------------
   (setq oldCmdecho (getvar 'CMDECHO))
   (setq oldOsmode  (getvar 'OSMODE))
 
   (setvar 'CMDECHO 0)
 
   ;;--------------------------------------------------------------------------
-  ;; Select source entity
+  ;; Mode
   ;;--------------------------------------------------------------------------
-  (setq ent (car (entsel "\nSelect object to offset: ")))
 
-  (if ent
-    (progn
+  (initget "Quarter Diameter")
 
-      ;;----------------------------------------------------------------------
-      ;; Select offset side
-      ;;----------------------------------------------------------------------
-      (setq sidePt
-        (getpoint "\nSpecify offset side: ")
+  (setq mode
+        (getkword
+          "\nMode [Quarter/Diameter] <Quarter>: "
+        )
+  )
+
+  (if (null mode)
+    (setq mode "Quarter")
+  )
+
+  ;;--------------------------------------------------------------------------
+  ;; Angular increment
+  ;;--------------------------------------------------------------------------
+
+  (setq angleStep
+        (getreal
+          "\nDivision angle <15>: "
+        )
+  )
+
+  (if (null angleStep)
+    (setq angleStep 15.0)
+  )
+
+  (cond
+
+    ;;======================================================================
+    ;; QUARTER
+    ;;======================================================================
+
+    ((= mode "Quarter")
+
+      (setq ent
+            (car
+              (entsel
+                "\nSelect center profile: "
+              )
+            )
       )
 
-      (if sidePt
+      (if ent
         (progn
 
-          ;;------------------------------------------------------------------
-          ;; Radius
-          ;;------------------------------------------------------------------
-          (setq radius
-            (getdist "\nSpecify column radius: ")
+          (setq sidePt
+                (getpoint
+                  "\nSpecify border point: "
+                )
           )
 
-          (if radius
+          (if sidePt
             (progn
 
-              ;;--------------------------------------------------------------
-              ;; Quarter circle divisions
-              ;; Default = 6 → 15° spacing
-              ;;--------------------------------------------------------------
-              (initget 6)
-
-              (setq divisions
-                (getint
-                  "\nNumber of quarter-circle divisions <6>: "
-                )
+              (setq obj
+                    (vlax-ename->vla-object ent)
               )
 
-              (if (null divisions)
-                (setq divisions 6)
+              (setq radius
+                    (CSRF-GetRadius obj sidePt)
               )
 
-              (setq stepAngle (/ 90.0 divisions))
-              (setq i 1)
+              (setq theta angleStep)
 
-              ;;--------------------------------------------------------------
-              ;; Create offsets
-              ;;--------------------------------------------------------------
-              (repeat (1- divisions)
+              (while (< theta 90.0)
 
-                (setq angle (* i stepAngle))
-
-                (setq offsetDist
-                  (* radius
-                     (sin
-                       (* pi (/ angle 180.0))
-                     )
-                  )
+                (setq dist
+                      (* radius
+                         (sin
+                           (CSRF-DegToRad theta)
+                         )
+                      )
                 )
 
-                (command
-                  "_.OFFSET"
-                  offsetDist
+                (CSRF-Offset
                   ent
+                  dist
                   sidePt
-                  ""
                 )
 
-                (setq i (1+ i))
+                (setq theta
+                      (+ theta angleStep)
+                )
               )
 
               (princ
                 (strcat
-                  "\nCreated "
-                  (itoa (1- divisions))
-                  " sinusoidal offsets."
+                  "\nQuarter surface generated."
+                  "\nRadius = "
+                  (rtos radius 2 3)
+                )
+              )
+            )
+          )
+        )
+      )
+    )
+
+    ;;======================================================================
+    ;; DIAMETER
+    ;;======================================================================
+
+    ((= mode "Diameter")
+
+      (setq ent1
+            (car
+              (entsel
+                "\nSelect first border profile: "
+              )
+            )
+      )
+
+      (if ent1
+
+        (progn
+
+          (setq ent2
+                (car
+                  (entsel
+                    "\nSelect second border profile: "
+                  )
+                )
+          )
+
+          (if ent2
+
+            (progn
+
+              (setq obj1
+                    (vlax-ename->vla-object ent1)
+              )
+
+              (setq obj2
+                    (vlax-ename->vla-object ent2)
+              )
+
+              (setq diameter
+                    (CSRF-GetDiameter obj1 obj2)
+              )
+
+              (setq radius (/ diameter 2.0))
+
+              ;;----------------------------------------------------------
+              ;; use midpoint between profiles as reference side
+              ;;----------------------------------------------------------
+
+              (setq sidePt
+                    (vlax-curve-getClosestPointTo
+                      obj2
+                      (vlax-curve-getPointAtParam
+                        obj1
+                        (/ (+ (vlax-curve-getStartParam obj1)
+                              (vlax-curve-getEndParam obj1))
+                           2.0
+                        )
+                      )
+                    )
+              )
+
+              (setq theta angleStep)
+
+              (while (< theta 180.0)
+
+                (setq dist
+                      (* radius
+                         (- 1.0
+                            (cos
+                              (CSRF-DegToRad theta)
+                            )
+                         )
+                      )
+                )
+
+                (command
+                  "_.OFFSET"
+                  dist
+                  ent1
+                  sidePt
+                  ""
+                )
+
+                (setq theta
+                      (+ theta angleStep)
+                )
+              )
+
+              (princ
+                (strcat
+                  "\nHalf-column surface generated."
+                  "\nDiameter = "
+                  (rtos diameter 2 3)
+                  "\nRadius = "
+                  (rtos radius 2 3)
                 )
               )
             )
@@ -147,14 +306,11 @@
     )
   )
 
-  ;;--------------------------------------------------------------------------
-  ;; Restore environment
-  ;;--------------------------------------------------------------------------
   (setvar 'CMDECHO oldCmdecho)
   (setvar 'OSMODE oldOsmode)
 
   (princ)
 )
 
-(princ "\nCSRF loaded. Type CSRF to run.")
+(princ "\nCSRF v1.0.0 loaded. Type CSRF to run.")
 (princ)

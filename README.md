@@ -27,3 +27,8 @@ Replaces the old following:
 See the [updated version](StairProfile)
 [Here](stairs) are two routines that are attempts to port [Dan E. Thomas'](https://forums.autodesk.com/t5/autocad-forum/custom-stair-program/td-p/5606736) routine to meters and centimeters. It draws a stair's section following simple prompts.
 My wish is to merge them all in a routine able to scale by the variable `insunits` or though a simple question to the user.
+
+
+## column surface
+
+C:CSRF Crea le righe di una superficie rigata con offset di un angolo retto o piatto diviso in parti uguali tra due sagome offset. Default 15°.
